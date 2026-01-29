@@ -1,0 +1,23 @@
+function [bestPose] = nanoP3p(img)
+%NANOP3P Summary of this function goes here
+%   Detailed explanation goes here
+
+%% init variables 
+%variables
+inlierThreshold = 1;
+featMap = load('featureMap.mat');
+K = [  583.6734         0  309.7243;   0  582.8750  183.5180;   0         0    1.0000];
+
+%%
+[x_det, X_det, id_de] = featureDetectMatch(rgb2gray(img), featMap.featureMap);
+[x_det, X_W_det, id_det] = featureDetectAndMatch(img, featMap); %detect Aruco tags
+[x_train, XW_train, x_test, XW_test] = featSelect(x_det, X_W_det, id_det); %select features
+
+Rt_arr = kneipWrapper(x_train, XW_train, K, inlierThreshold); %can be streamlined, currently much overhead: outputs struct with poses, Rt matrices, most inliers, least reproj...
+Rt_best = chooseSoln(Rt_arr, x_test, XW_test, K);
+
+bestPose = p3pFuncs.rtToPose(Rt_best);
+
+
+end
+
