@@ -11,7 +11,7 @@ function [Rt_C2W_Arr] = kneipWrapper(x_pnts_i, X_pnts_W, K)
                 
                 x_pnts_c = K_inv * x_pnts_i_aug;      %Times by inverse of K. Apparently divide is faster.
                 
-                x_pnts_c(:,j) = x_pnts_c / norm(x_pnts_c);
+                x_pnts_c(:,j) = x_pnts_c / vecnorm(x_pnts_c);
 
             end
 

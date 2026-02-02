@@ -1,11 +1,9 @@
-%%
 deviceAddress = '192.168.55.1'; %SSH IP address
 userName = 'jetson';
 password = 'jetson';
 hwobj = jetson(deviceAddress,userName,password);
-%% 
 
-%$ Configure GPU environment
+% Configure GPU environment
 envCfg = coder.gpuEnvConfig('jetson');
 envCfg.HardwareObject = hwobj;
 envCfg.BasicCodegen = 1;
