@@ -9,10 +9,12 @@ function test_entrypoint_nanoP3p()
 
     % Jetson camera configuration
     camName = 'vi-output, imx219 6-0010';
-    %camRes  = [1280 720];
-    camRes  = [640 360];
+    camRes  = [1280 720];
+    %camRes  = [640 360];
 
     cam = camera(hwobj, camName, camRes);
+   % Optional display (on Jetson monitor)
+    dispObj = imageDisplay(hwobj);
 
     % Prepare frame buffers
     width  = int32(camRes(1));
@@ -29,8 +31,7 @@ function test_entrypoint_nanoP3p()
         % Call external CUDA grayscale function (from library)
         coder.ceval('nanoP3p', coder.rref(frameRGB), coder.wref(p3pSoln));
 
-        % Optional display (on Jetson monitor)
-        dispObj = imageDisplay(hwobj);
+
         image(dispObj, frameRGB);
 
         fprintf('Soln: \n');

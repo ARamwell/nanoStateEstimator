@@ -18,6 +18,7 @@
     cfg.Hardware.BuildDir = '~/build_matlab';
     cfg.GenerateExampleMain = 'GenerateCodeAndCompile';
     cfg.GenerateReport = true;
+    hwobj.setDisplayEnvironment('0.0');
 
     % Link external CUDA library
     libPath = 'C:\Users\Alyssa\Documents\nanoStateEstimator\codegen\dll\nanoP3p';

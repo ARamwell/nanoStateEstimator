@@ -1,9 +1,10 @@
-function compile_test_ep_nanoP3p
+
     deviceAddress = '192.168.55.1'; %SSH IP address
     userName = 'jetson';
     password = 'jetson';
     hwobj = jetson(deviceAddress,userName,password);
 
+    %% 
     % Configure GPU environment
     envCfg = coder.gpuEnvConfig('jetson');
     envCfg.HardwareObject = hwobj;
@@ -17,6 +18,7 @@ function compile_test_ep_nanoP3p
     cfg.Hardware.BuildDir = '~/build_matlab';
     cfg.GenerateExampleMain = 'GenerateCodeAndCompile';
     cfg.GenerateReport = true;
+    hwobj.setDisplayEnvironment('0.0');
 
     % Link external CUDA library
     libPath = 'C:\Users\Alyssa\Documents\nanoStateEstimator\codegen\dll\nanoP3p';
@@ -36,4 +38,3 @@ function compile_test_ep_nanoP3p
     pid = runApplication(hwobj, 'test_entrypoint_nanoP3p');
     fprintf('Application running on Jetson with program ID: %d\n', pid);
   
-end
