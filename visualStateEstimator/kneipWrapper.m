@@ -6,12 +6,12 @@ function [Rt_C2W_Arr] = kneipWrapper(x_pnts_i, X_pnts_W, K)
             x_pnts_c = createArray(3, size(x_pnts_i, 2));
         
             for j=1:size(x_pnts_i, 2)
-                x_pnts_i_aug = [x_pnts_i(:,j); 1];     %Augment vector to homogenise
+                x_pnt_i_aug = [x_pnt_i(:,j); 1];     %Augment vector to homogenise
                 K_inv = inv(K);
                 
-                x_pnts_c = K_inv * x_pnts_i_aug;      %Times by inverse of K. Apparently divide is faster.
+                x_pnt_c = K_inv * x_pnt_i_aug;      %Times by inverse of K. Apparently divide is faster.
                 
-                x_pnts_c(:,j) = x_pnts_c / norm(x_pnts_c);
+                x_pnts_c(:,j) = x_pnt_c / norm(x_pnt_c);
 
             end
 
