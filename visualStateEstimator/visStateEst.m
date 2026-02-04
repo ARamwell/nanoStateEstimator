@@ -30,10 +30,10 @@ function visStateEst()
     p3pMsg = ros2message("geometry_msgs/Pose");
 
   %% Run capture and publish loop
-    for i = 1:50
+    for i = 1:1000
         % Capture frame
         %frameRGB = rot90(snapshot(cam));
-        frameRGB = (snapshot(cam));
+        frameRGB = fliplr(snapshot(cam));
         
         % Call external CUDA grayscale function (from library)
         coder.ceval('nanoP3p', coder.rref(frameRGB), coder.wref(p3pSoln));
