@@ -234,9 +234,39 @@ classdef EKF_3dQuad_funcs
         % ***** Evaluate model and jacobians*****
 
             %Run dynamics update
-            x_new_hat(1:end,1) = feval(strcat('ekf_processModel_', xSizeStr, integ), numerics);
-            F_new_hat(1:end, 1:end) = feval(strcat('ekf_F_', xSizeStr, integ), numerics);
-            L_new_hat(1:end, 1:end) = feval(strcat('ekf_L_', xSizeStr, integ), numerics);
+            if xhowBig == 10
+                if integ == "trap"
+                    x_new_hat(1:end,1) = ekf_processModel_10el_trap(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_F_10el_trap(numerics);
+                    L_new_hat(1:end, 1:end) =ekf_L_10el_trap(numerics);
+                elseif integ == "mtrp"
+                    x_new_hat(1:end,1) = ekf_processModel_10el_mtrp(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_F_10el_mtrp(numerics);
+                    L_new_hat(1:end, 1:end) =ekf_L_10el_mtrp(numerics);
+                else %rect
+                    x_new_hat(1:end,1) = ekf_processModel_10el_rect(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_F_10el_rect(numerics);
+                    L_new_hat(1:end, 1:end) =ekf_L_10el_rect(numerics);
+                end
+            else %16 el
+                if integ == "trap"
+                    x_new_hat(1:end,1) = ekf_processModel_16el_trap(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_F_16el_trap(numerics);
+                    L_new_hat(1:end, 1:end) =ekf_L_16el_trap(numerics);
+                elseif integ == "mtrp"
+                    x_new_hat(1:end,1) = ekf_processModel_16el_mtrp(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_F_16el_mtrp(numerics);
+                    L_new_hat(1:end, 1:end) =ekf_L_16el_mtrp(numerics);
+                else %rect
+                    x_new_hat(1:end,1) = ekf_processModel_16el_rect(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_F_16el_rect(numerics);
+                    L_new_hat(1:end, 1:end) =ekf_L_16el_rect(numerics);
+                end
+            end
+
+            %x_new_hat(1:end,1) = feval(strcat('ekf_processModel_', xSizeStr, integ), numerics);
+            %F_new_hat(1:end, 1:end) = feval(strcat('ekf_F_', xSizeStr, integ), numerics);
+            %L_new_hat(1:end, 1:end) = feval(strcat('ekf_L_', xSizeStr, integ), numerics);
 
             % Check quaternion term
             %Enforce Smallest angle change
@@ -261,9 +291,17 @@ classdef EKF_3dQuad_funcs
           xSizeStr = strcat(string(xhowBig), 'el');
           z_new_hat = createArray(zhowBig, 1);
           H_new_hat = createArray(zhowBig, xhowBig);
-    
-          z_new_hat(1:end, 1) = feval(strcat('ekf_measModel_', xSizeStr), x_new_hat); %get predicted measurement
-          H_new_hat(1:end, 1:end) = feval(strcat('ekf_H_', xSizeStr), x_new_hat); %and covariance
+
+          if xhowBig==10
+              z_new_hat(1:end, 1) = ekf_measModel_10el(x_new_hat);  %get predicted measurement
+              H_new_hat(1:end, 1:end)  = ekf_H_10el(x_new_hat); %and covariance
+          else
+              z_new_hat(1:end, 1) = ekf_measModel_16el(x_new_hat);
+              H_new_hat(1:end, 1:end)  = ekf_H_16el(x_new_hat);
+          end
+          %code gen does not support feval
+          %z_new_hat(1:end, 1) = feval(strcat('ekf_measModel_', xSizeStr), x_new_hat); %get predicted measurement
+          %H_new_hat(1:end, 1:end) = feval(strcat('ekf_H_', xSizeStr), x_new_hat); %and covariance
                                      
         end
 
