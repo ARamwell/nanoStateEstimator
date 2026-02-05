@@ -61,11 +61,13 @@ function mainStateEst()
     
     %MAIN STATE ESTIMATOR
     for i=1:200000 %could also be when called/stopped
-        %check for new imu msg
+        
+        %check/wait for new imu msg
         [u_new, tsNew] = getRos2Msg_imu(imuSub, tsPrev, 1/imuHz_ds);
         dt_new = double(tsNew-tsPrev);
         dt_av = 0.9*dt_av + 0.1*dt_new;
     
+        % when new IMU message is received, update state estimate
         if ~isnan(u_new(1,1))
             
             %check for new p3p msg
@@ -74,31 +76,32 @@ function mainStateEst()
                 lastCorrectionTime = ts_lastCorrection;
                 meas_count = meas_count + 1;
             end
-            timeSinceLastCorrection = tsNew-lastCorrectionTime; 
+            timeSinceLastCorrection = tsNew-lastCorrectionTime; %how much time has passed since we last got a visual pose estimate?
             
+            %RUN EKF - currently commented out for testing
             dt_av_s = double(dt_av)*1e-6;
-            [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, u_new, Q, z_new, W_k, dt_av_s, integ, alpha, meas_count);
+            %[x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, u_new, Q, z_new, W_k, dt_av_s, integ, alpha, meas_count);
     
             count=count+1;  
-            ekfResult.time = tsNew;
-            ekfResult.x_ = x_k_;
-            ekfResult.u = u_new;
-            ekfResult.z = z_out_k;
-            ekfResult.xHat = xHat_k; 
-            ekfResult.zHat= zHat_k;
-            ekfResult.elapsedTime = tsNew-t0;
-            ekfResult.timeSinceLastCorrection= timeSinceLastCorrection;
-            ekfResult.y = y_k; 
-            ekfResult.K = K_k;
-            ekfResult.P = P_k_; %these might still have zeroes in the lower triangle
-            ekfResult.PHat = PHat_k;
-            ekfResult.S = S_k;
-            ekfResult.W = W_k;
+            ekfResult.time = tsNew; 
+            ekfResult.x_ = x_k_; %state estimate - 16-element column vector  **log
+            ekfResult.u = u_new; %IMU data = 6-element column vector **log
+            ekfResult.z = z_out_k; %visual pose estimate - 7 el col vec    **log
+            ekfResult.xHat = xHat_k; %state estimate from IMU - 16-element column vector **log
+            ekfResult.zHat= zHat_k; %predicted visual pose estimate - 7-el col vec 
+            ekfResult.elapsedTime = tsNew-t0; %time since EKF initialisation **log
+            ekfResult.timeSinceLastCorrection= timeSinceLastCorrection; %time since last camera update **log
+            ekfResult.y = y_k; %measurement residual - 7-el col vec **log
+            ekfResult.K = K_k; %Kalman gain - 
+            ekfResult.P = P_k_; %16x16 matrix **log diagonal
+            ekfResult.PHat = PHat_k;%16x16 matrix **log diagonal
+            ekfResult.S = S_k;%7x7 matrix **log diagonal
+            ekfResult.W = W_k;%7x7 matrix **log diagonal
             ekfResult.Q = Q_k;
             
             tsPrev = tsNew;
 
-            %prepare ros2 message
+            %prepare ros2 message - add timestamp!
             %dNow   = datetime('now');
             %ekfMsg.header.
             ekfMsg.position.x = x_k_(1,1);
