@@ -8,7 +8,7 @@ function [msgNew, tsNew]=getRos2Msg_p3p(p3pSub, tsPrev)
     tsNew = tsPrev;
 
     if ~status %status returns false if timed out
-        tsNew = (newP3pMsg.header.timestamp.sec*1e6)+(newP3pMsg.header.timestamp.nanosec*1e-3); %in us          
+        tsNew = double(newP3pMsg.header.stamp.sec)+double(newP3pMsg.header.stamp.nanosec*1e-3); %in us          
         isNew = (tsNew ~= tsPrev); %check if new message
     
         p3p_t = [newP3pMsg.pose.position.x newP3pMsg.pose.position.y newP3pMsg.pose.position.z];

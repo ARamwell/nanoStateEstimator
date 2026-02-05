@@ -7,12 +7,12 @@ function [msgNew, tsNew]=getRos2Msg_imu(imuSub, tsPrev, tout)
 
     [newImuMsg, status, statusTest] = receive(imuSub, tout);
 
-    msgNew = nan(6,1);
+    msgNew = single(nan(6,1));
     isNew = false;
     tsNew = tsPrev;
     if ~status %status returns false if timed out
-        tsNew = newImuMsg.timestamp; %in us
-           
+        tsNew_usec = newImuMsg.timestamp; %in us
+        tsNew = (tsNew_usec*1e6);
         isNew = (tsNew ~= tsPrev); %check if new message
     
         msgNew = [newImuMsg.gyro_rad; newImuMsg.accelerometer_m_s2];

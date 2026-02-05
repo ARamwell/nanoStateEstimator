@@ -11,6 +11,7 @@ K = [  583.6734         0  309.7243;   0  582.8750  183.5180;   0         0    1
 [x_det, X_W_det, id_det] = featureDetectMatch_nano(rgb2gray(img), featMap.featureMap); %detect Aruco tags
 [x_train, XW_train, x_test, XW_test] = featSelect(x_det, X_W_det, id_det); %select features
 
+bestPose = nan(7,1);
 if ~isnan(x_det(1,1))
     Rt_arr = kneipWrapper(x_train, XW_train, K); %run pose estimator - gives up to four solutions, returns NaN if it can't see any features
     %Rt_best = chooseSoln(Rt_arr, x_test, XW_test, K);
@@ -19,8 +20,7 @@ if ~isnan(x_det(1,1))
         bestPose = rtToPose(Rt_best);
     end
 else
-    bestPose = nan(7,1);
-end
+
 
 
 
