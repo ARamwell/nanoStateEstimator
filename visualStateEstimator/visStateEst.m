@@ -21,7 +21,7 @@ function visStateEst()
     frameRGB  = zeros(height, width, 3, 'uint8');
     frameOverlay = frameRGB;
     p3pSoln = zeros(7,4);
-    
+    T_rq2rc = [0 1 0 0; -1 0 0 0; 0 0 1 0; 0 0 0 1];
 
     %init ROS2 publisher
     rosID = 1;
@@ -34,21 +34,24 @@ function visStateEst()
         % Capture frame
         %frameRGB = rot90(snapshot(cam));
         frameRGB = rot90(snapshot(cam), 2);
-        [ts_sec, ts_nsec] = getCurrentTimestamp();
+        [ts_dbl, ts_sec, ts_nsec] = getCurrentTimestamp();
         
         % Call external CUDA grayscale function (from library)
         coder.ceval('nanoP3p', coder.rref(frameRGB), coder.wref(p3pSoln));
 
+        %convert to quad frame
+        quadPose = tFormPQRight(p3pSoln, T_rq2rc);
+
         %Populate ROS2 message
         p3pMsg.header.stamp.sec = ts_sec;
         p3pMsg.header.stamp.nanosec = ts_nsec;
-        p3pMsg.pose.position.x = p3pSoln(1,1);
-        p3pMsg.pose.position.y = p3pSoln(2,1);
-        p3pMsg.pose.position.z = p3pSoln(3,1);
-        p3pMsg.pose.orientation.w = p3pSoln(4,1);
-        p3pMsg.pose.orientation.x = p3pSoln(5,1);
-        p3pMsg.pose.orientation.y = p3pSoln(6,1);
-        p3pMsg.pose.orientation.z = p3pSoln(7,1);
+        p3pMsg.pose.position.x = quadPose(1,1);
+        p3pMsg.pose.position.y = quadPose(2,1);
+        p3pMsg.pose.position.z = quadPose(3,1);
+        p3pMsg.pose.orientation.w = quadPose(4,1);
+        p3pMsg.pose.orientation.x = quadPose(5,1);
+        p3pMsg.pose.orientation.y = quadPose(6,1);
+        p3pMsg.pose.orientation.z = quadPose(7,1);
         send(p3pPub, p3pMsg);
         
         frameOverlay = overlayPoseOnImage(frameRGB, p3pSoln);

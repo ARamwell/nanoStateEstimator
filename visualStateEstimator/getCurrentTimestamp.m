@@ -12,7 +12,7 @@ totalSecondsSinceEpoch = posixtime(currentTime);
 secondsSinceEpoch = (floor(totalSecondsSinceEpoch));
 totalNanoSecondsSinceEpoch = (totalSecondsSinceEpoch - secondsSinceEpoch)*1e9;
 
-sec = uint32(secondsSinceEpoch);
+sec =int32(secondsSinceEpoch);
 nsec = uint32(floor(totalNanoSecondsSinceEpoch));
 dec = totalSecondsSinceEpoch;
 
