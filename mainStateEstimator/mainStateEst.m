@@ -19,7 +19,7 @@ function mainStateEst()
     
     %% init ros2 subscribers
     ekfNode = ros2node("ekf_node", domainID); %from the flight controller via the uXRCE agent
-    imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort");
+   % imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort");
     
     %p3pNode = ros2node("p3p_node", domainID); %from the visual state estimator (camera + processing)
     p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseStamped', Reliability='besteffort');
@@ -55,8 +55,8 @@ function mainStateEst()
     
     %% run EKF
     %wait for first imu msg
-    t0_us = uint64(t0*1e6);
-    [~] = getRos2Msg_imu(imuSub, t0_us, 20);
+    %t0_us = uint64(t0*1e6);
+    %[~] = getRos2Msg_imu(imuSub, t0_us, 20);
     [tsPrev, ~, ~] = getCurrentTimestamp;
     %tsPrev = double(tsPrev_us)*1e-6;
 
@@ -64,7 +64,8 @@ function mainStateEst()
     for i=1:200000 %could also be when called/stopped
         
         %check/wait for new imu msg
-        [u_new] = getRos2Msg_imu(imuSub, tsPrev, 1/imuHz_ds);
+        %[u_new] = getRos2Msg_imu(imuSub, tsPrev, 1/imuHz_ds);
+        u_new = [0 0 0 0 0 -9.79]';
         [tsNew, ~, ~] = getCurrentTimestamp;
         dt_new =tsNew-tsPrev;
         dt_av = 0.9*dt_av + 0.1*dt_new;

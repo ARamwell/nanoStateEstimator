@@ -17,6 +17,7 @@ cfg.Hardware.RemoteDeviceUsername = userName;
 cfg.Hardware.RemoteDevicePassword = password;
 cfg.Hardware.DeployTo = 'Remote Device';
 cfg.Hardware.BuildAction = 'None';
+cfg.InstructionSetExtensions = "None";
 cfg.GenerateReport = true;
 hwobj.setDisplayEnvironment('0.0');
 

@@ -7,8 +7,6 @@ function [bestPose_rc2rw] = nanoP3p(img)
 featMap = coder.load('featureMap.mat');
 K = [  583.6734         0  309.7243;   0  582.8750  183.5180;   0         0    1.0000];
 
-Rt_
-
 %%
 [x_det, X_W_det, id_det] = featureDetectMatch_nano(rgb2gray(img), featMap.featureMap); %detect Aruco tags
 [x_train, XW_train, x_test, XW_test] = featSelect(x_det, X_W_det, id_det); %select features
@@ -22,7 +20,6 @@ if ~isnan(x_det(1,1))
         bestPose_rc2rw = rtToPose(Rt_best);
     end
 else
-
 
 end
 

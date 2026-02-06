@@ -35,7 +35,7 @@ function [Rt_C2W_Arr] = kneipWrapper(x_pnts_i, X_pnts_W, K)
                 T_W2C_Arr(4, 1:4, j) = [0 0 0 1]; 
 
                 %And invert
-                T_C2W = p3pFuncs.invertT(T_W2C_Arr(:,:,j));
+                T_C2W = invertT(T_W2C_Arr(:,:,j));
                 T_C2W_Arr(:,:,j) = T_C2W;
             end
 
