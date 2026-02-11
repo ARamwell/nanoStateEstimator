@@ -9,7 +9,7 @@ K = [  583.6734         0  309.7243;   0  582.8750  183.5180;   0         0    1
 
 %%
 [x_det, X_W_det, id_det] = featureDetectMatch_nano(rgb2gray(img), featMap.featureMap); %detect Aruco tags
-[x_train, XW_train, x_test, XW_test] = featSelect(x_det, X_W_det, id_det); %select features
+[x_train, XW_train, id_train, x_test, XW_test, id_test] = featSelect(x_det, X_W_det, id_det', 1); %select features
 
 bestPose_rc2rw = nan(7,1);
 if ~isnan(x_det(1,1))
