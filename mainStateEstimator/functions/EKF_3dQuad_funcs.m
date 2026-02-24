@@ -5,7 +5,7 @@ classdef EKF_3dQuad_funcs
 
       %------------------------------------------------------------%
       
-      function [x_new, P_new, x_new_hat, P_new_hat, z_new_hat, z_new, y_new, K_new, S_new_hat, Q_k, W_new] = EKF_loop(g, x_k, P_k, u_new, Q_k, z_new, W_k, t_delta, integ, alpha, meas_count)
+      function [x_new, P_new, x_new_hat, P_new_hat, z_new_hat, z_new, y_new, K_new, S_new_hat, Q_k, W_new] = EKF_loop(g, x_k, P_k, u_new, Q_k, z_new, W_k, t_delta, integ, alpha, meas_count, z_flag)
         %EKF_LOOP Main EKF loop for 3D quad, calling prediction and correction stages
         %
         %   Extended Kalman filter using IMU measurements for state prediction and fusing in pose 'measurements' from some other state sensor (usually visual) 
@@ -76,7 +76,7 @@ classdef EKF_3dQuad_funcs
         %*************************************************
         %ONLY RUN CORRECTION IF A NEW MEASUREMENT HAS BEEN DETECTED
 
-            if isnan(z_new)
+            if ~z_flag % if no new measurement
                 x_new = x_new_hat;
                 P_new = P_new_hat;
                 z_new_hat = nan(7,1);

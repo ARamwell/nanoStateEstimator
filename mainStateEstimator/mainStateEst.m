@@ -19,7 +19,7 @@ function mainStateEst()
     
     %% init ros2 subscribers
     ekfNode = ros2node("ekf_node", domainID); %from the flight controller via the uXRCE agent
-   % imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort");
+    imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort");
     
     %p3pNode = ros2node("p3p_node", domainID); %from the visual state estimator (camera + processing)
     p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseStamped', Reliability='besteffort');
@@ -56,35 +56,70 @@ function mainStateEst()
     %% run EKF
     %wait for first imu msg
     %t0_us = uint64(t0*1e6);
-    %[~] = getRos2Msg_imu(imuSub, t0_us, 20);
+    [~] = getRos2Msg_imu(imuSub, t0, 20);
     [tsPrev, ~, ~] = getCurrentTimestamp;
     %tsPrev = double(tsPrev_us)*1e-6;
-
+    fprintf("Initialising state estimator at: %f", double(x_k_(1,1)) );%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
+    fprintf("%f ", double(x_k_(2,1)));
+    fprintf("%f |", double(x_k_(3,1)));
+    fprintf("%f ", double(x_k_(4,1)));
+    fprintf("%f ", double(x_k_(5,1)));
+    fprintf("%f ", double(x_k_(6,1)));
+    fprintf("%f ", double(x_k_(7,1)));
+  
     %MAIN STATE ESTIMATOR
-    for i=1:200000 %could also be when called/stopped
+    for i=1:2000 %could also be when called/stopped
         
         %check/wait for new imu msg
-        %[u_new] = getRos2Msg_imu(imuSub, tsPrev, 1/imuHz_ds);
-        u_new = [0 0 0 0 0 -9.79]';
+        [u_new] = getRos2Msg_imu(imuSub, tsPrev, 1/imuHz_ds);
+        %u_new = [0 0 0 0 0 -9.79]';
         [tsNew, ~, ~] = getCurrentTimestamp;
         dt_new =tsNew-tsPrev;
         dt_av = 0.9*dt_av + 0.1*dt_new;
     
         % when new IMU message is received, update state estimate
-        if ~isnan(u_new(1,1))
+        if sum(u_new ~= 0)
             
             %check for new p3p msg
+            zFlag = 0;
             [z_new, ts_lastCorrection] = getRos2Msg_p3p(p3pSub, ts_lastCorrection);
-            if ~isnan(z_new(1,1))
+            zSum = sum(z_new); %Nans don't work in codegen, they become zeroes
+            if zSum ~= 0
+                zFlag = 1;
                 lastCorrectionTime = ts_lastCorrection;
                 meas_count = meas_count + 1;
+                fprintf("/n new measurement!");
             end
             timeSinceLastCorrection = tsNew-lastCorrectionTime; %how much time has passed since we last got a visual pose estimate?
-            
-            %RUN EKF - currently commented out for testing
+                
+                fprintf("\n");
+                fprintf("Running with u_k: %f", double(u_new(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
+                fprintf("%f ", double(u_new(2)));
+                fprintf("%f ", double(u_new(3)));
+                fprintf("%f ", double(u_new(4)));
+                fprintf("%f ", double(u_new(5)));
+                fprintf("%f ", double(u_new(6)));
+                fprintf("; and z_k: %f ", double(z_new(1)));
+                fprintf("%f ", double(z_new(2)));
+                fprintf("%f ", double(z_new(3)));
+                fprintf("%f ", double(z_new(4)));
+                fprintf("%f ", double(z_new(5)));
+                fprintf("%f ", double(z_new(6)));
+                fprintf("%f ", double(z_new(7)));
+
+                
             dt_av_s = double(dt_av)*1e-6;
-            [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, u_new, Q, z_new, W_k, dt_av_s, integ, alpha, meas_count);
+            [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, u_new, Q, z_new, W_k, dt_av_s, integ, alpha, meas_count, zFlag);
     
+            fprintf("\n");
+            fprintf("New state: %f", double(x_k_(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
+            fprintf("%f ", double(x_k_(2)));
+            fprintf("%f ", double(x_k_(3)));
+            fprintf("%f ", double(x_k_(4)));
+            fprintf("%f ", double(x_k_(5)));
+            fprintf("%f ", double(x_k_(6)));
+            fprintf("%f ", double(x_k_(7)));
+
             count=count+1;  
             ekfResult.time = tsNew; 
             ekfResult.x_ = x_k_; %state estimate - 16-element column vector  **log
@@ -118,8 +153,7 @@ function mainStateEst()
             send(ekfPub, ekfMsg);
 
             %log data
-            %writeToEkfLog(fID, ekfResult);
-    
+            %writeToEkfLog(fID, ekfResult);    
         end
     end
 
