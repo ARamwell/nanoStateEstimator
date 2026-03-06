@@ -22,7 +22,7 @@ function mainStateEst()
     
     imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort", Durability="volatile", History="keeplast", Depth=1);
     p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseStamped', Reliability='besteffort');
-    %mocapSub = ros2subscriber(ekfNode, '/x500_A/pose_stamped', Reliability='besteffort'); %actually on domain ID 11
+    %mocapSub = ros2subscriber(ekfNode, '/x500_A/pose_stamped', 'geometry_msgs/PoseStamped', Reliability='besteffort'); %actually on domain ID 11
 
     %should probably also make a publisher?
     %ekfNode = ros2node
@@ -80,6 +80,7 @@ function mainStateEst()
         %u_new = [0 0 0 0 0 -9.79]';
 
         %check for new mocap message
+        [pq_mocap_new, pq_mocap_old] = getRos2Msg_imu(mocapSub, pq_mocap_old);
 
 
         % when new IMU message is received, update state estimate
