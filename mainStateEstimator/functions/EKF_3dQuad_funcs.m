@@ -39,6 +39,7 @@ classdef EKF_3dQuad_funcs
         %----------- STEP 0: INITIALISATIONS -------------
          K_new = createArray(size(x_k, 1), 7);
          S_new_hat = nan(7,7);
+         W_new = W_k;
         
         %*************************************************
         %----------- STEP 1: DYNAMICS UPDATE -------------
@@ -82,7 +83,6 @@ classdef EKF_3dQuad_funcs
                 z_new_hat = nan(7,1);
                 y_new = nan(7,1);
                 %C_new = C_k;
-                W_new = W_k;
                
             else
         %---------- STEP 2: MEASUREMENT UPDATE------------    
@@ -162,8 +162,6 @@ classdef EKF_3dQuad_funcs
                     else
                         W_new = alpha*W_k + (1-alpha)*((v_new * v_new') +  H_new * P_new_hat * H_new');
                     end
-                else
-                    W_new = W_k;
                 end
                 %*************************************************
             end
@@ -179,7 +177,6 @@ classdef EKF_3dQuad_funcs
                 x_new(4:7,1) =x_new(4:7,1)/norm(x_new(4:7,1));
             end        
 
-            %enforce a minimum P and PHat
 
             
         end
