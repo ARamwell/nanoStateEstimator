@@ -6,7 +6,6 @@ function [dec, sec, nsec] = getCurrentTimestamp()
 currentTime = datetime('now');
 %currentTime.Format = 'dd-MMM-yyyy HH:mm:ss.SSSSSSSSS';
 
-
 totalSecondsSinceEpoch = posixtime(currentTime);
 
 secondsSinceEpoch = (floor(totalSecondsSinceEpoch));
