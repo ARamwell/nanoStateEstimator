@@ -6,8 +6,8 @@ function writeToEkfLog(fileID, ekfResult)
     ekfSize = size(ekfResult.x_,1);
 
     % Time fields
-    fprintf(fileID,'%u,', uint32(ekfResult.time));
-    fprintf(fileID,'%u,', uint32(ekfResult.timeSinceLastCorrection));
+    fprintf(fileID,'%u,', uint64(ekfResult.time*10^6));
+    fprintf(fileID,'%u,', uint32(ekfResult.timeSinceLastCorrection*10^6));
 
     % State vector
     for i = 1:ekfSize

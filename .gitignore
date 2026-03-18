@@ -3,3 +3,5 @@ src/
 msgdef/
 *.asv
 *.elf
+*.tgz
+*.sh

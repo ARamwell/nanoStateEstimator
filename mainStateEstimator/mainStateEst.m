@@ -80,7 +80,7 @@ function mainStateEst()
         %u_new = [0 0 0 0 0 -9.79]';
 
         %check for new mocap message
-        [pq_mocap_new, pq_mocap_old] = getRos2Msg_imu(mocapSub, pq_mocap_old);
+        %[pq_mocap_new, pq_mocap_old] = getRos2Msg_imu(mocapSub, pq_mocap_old);
 
 
         % when new IMU message is received, update state estimate
