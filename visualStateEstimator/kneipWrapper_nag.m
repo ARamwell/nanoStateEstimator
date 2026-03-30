@@ -1,10 +1,9 @@
-function [Rt_C2W_Arr] = kneipWrapper(x_pnts_i, X_pnts_W, K)
+function [Rt_C2W_Arr] = kneipWrapper_nag(x_pnts_i, X_pnts_W, K)
             %expects three points. if there are more, it will only use the
             %first three for pose calculation
            
             %Get projection rays
             x_pnts_c = createArray(3, size(x_pnts_i, 2));
-            Rt_C2W_Arr = createArray(3,4,4);
         
             for j=1:size(x_pnts_i, 2)
                 x_pnt_i_aug = [x_pnts_i(:,j); 1];     %Augment vector to homogenise
@@ -20,14 +19,26 @@ function [Rt_C2W_Arr] = kneipWrapper(x_pnts_i, X_pnts_W, K)
             %x_ABCD_c = p3pFuncs.fixRadialDistortion(x_ABCD_c, -0.3434, 0.1096);
 
             %Run Kneip's p3p to get up to 4 solutions for the Rt matrix.
-            %(comes out as 3x16 tR matrix)
             %[Rt_C2W_Arr] = opengv('p3p_kneip', X_pnts_W(:,1:4), x_pnts_c(:,1:4));
-            Rt_C2W_Arr_flat = KneipP3P_Or(X_pnts_W(:,1:3), x_pnts_c(:,1:3));
-            for a=1:floor(size(Rt_C2W_Arr_flat,2)/4)
-                idx = (a*4)-3;
-                Rt_C2W_Arr(1:3,4,a) = Rt_C2W_Arr_flat(1:3,idx);
-                Rt_C2W_Arr(1:3,1:3,a) = Rt_C2W_Arr_flat(1:3,(idx+1):(idx+3));
-                %reshape(Rt_C2W_Arr_flat, 3, 4, []);
-            end
-end
+            %Rt_C2W_Arr = KneipP3P_Or(X_pnts_W(:,1:3), x_pnts_c(:,1:3));
 
+            [R_W2C_Arr, t_W2C_Arr] = KneipP3P_Nag(x_pnts_c(:,1:3), X_pnts_W(:,1:3));
+
+            T_W2C_Arr = zeros(4,4,size(R_W2C_Arr,3));
+            T_C2W_Arr = createArray(size(T_W2C_Arr));
+            
+            %For each possible solution
+            for j=1:size(R_W2C_Arr,3)
+                %Concatenate to get T
+                T_W2C_Arr(1:3,1:3,j) = R_W2C_Arr(:,:,j);
+                T_W2C_Arr(1:3,4,j) = t_W2C_Arr(:,j);
+                T_W2C_Arr(4, 1:4, j) = [0 0 0 1]; 
+
+                %And invert
+                T_C2W = invertT(T_W2C_Arr(:,:,j));
+                T_C2W_Arr(:,:,j) = T_C2W;
+            end
+
+            Rt_C2W_Arr = T_C2W_Arr(1:3, 1:4,:);
+end
+    
