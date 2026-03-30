@@ -62,6 +62,9 @@ function visStateEst()
         % end
         % fprintf('\n');
         
+        %fileName = strcat("img_", string(uint32(ts_sec)), string(uint32(ts_nsec*10^-3)));
+        %writeImgToTxtFile(frameRGB, fileName);
+        
     end
 
     fprintf('All frames captured and processed.\n');

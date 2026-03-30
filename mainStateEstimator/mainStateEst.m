@@ -51,7 +51,7 @@ function mainStateEst()
     pub_status = ros2publisher(ekfNode, "/jetson/ekf/status", "std_msgs/String");
     
     % Subscriber for control commands from MATLAB app
-    % Note: We can't use nested callbacks with codegen, so we'll poll
+    % Note: We can't use nested callbacks with codegen, pso we'll poll
     commandSub = ros2subscriber(ekfNode, "/jetson/ekf/command", "std_msgs/String");
     
     fprintf('ROS2 initialized. Waiting for START command...\n');
