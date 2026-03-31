@@ -1,4 +1,4 @@
-function writeToEkfLog(fileID, ekfResult, groundTruthPose)
+function writeToEkfLog(fileID, ekfResult)
 %WRITETOEKFLOG Summary of this function goes here
 %   Detailed explanation goes here
 %#codegen
@@ -6,7 +6,7 @@ function writeToEkfLog(fileID, ekfResult, groundTruthPose)
     ekfSize = size(ekfResult.x_,1);
 
     % Time fields
-    fprintf(fileID,'%u,', uint32(ekfResult.time*10^6));
+    fprintf(fileID,'%u,', uint64(ekfResult.time*10^6));
     fprintf(fileID,'%u,', uint32(ekfResult.timeSinceLastCorrection*10^6));
 
     % State vector
@@ -69,12 +69,6 @@ function writeToEkfLog(fileID, ekfResult, groundTruthPose)
             fprintf(fileID,'%.6f,', W(r,c));
         end
     end
-
-    % ----  ground truth pose ----
-    %pq = groundTruthPose;
-    for r = 1:7
-        fprintf(fileID,'%.6f,', groundTruthPose(r,1));
-    end 
 
     fprintf(fileID,'\n');
 end
