@@ -1,7 +1,14 @@
-function mainStateEst()
+function mainStateEst_Prototype()
 %MAIN Summary of this function goes here
 %   Detailed explanation goes here
     
+    %% import log
+    nanoLog=readtable("C:\Users\Alyssa\Downloads\ekfLog.txt");
+    u_hist = [nanoLog.u_1;nanoLog.u_2;nanoLog.u_3;nanoLog.u_4;nanoLog.u_5;nanoLog.u_6];
+    z_hist = [nanoLog.z_1; nanoLog.z_2;nanoLog.z_3;nanoLog.z_4;nanoLog.z_5;nanoLog.z_6;nanoLog.z_7];
+    t_hist = 
+    
+
     %% init parameters
     g = [0 0 -9.79]'; %for simulation
     integ = 'rect'; %ekf parameter
@@ -13,12 +20,8 @@ function mainStateEst()
 
     %required initiali
     % sations for codegen
-    %count = int32(0);
     u_prev = single(nan(6,1));
-    %z_prev = double(zeros(7,1));
-    %meas_count = int32(0);
     tsPrev = 0;
-    %dt_av = double(1/imuHz_ds);
 
     mapfile = "C:\Users\Alyssa\Documents\nanoStateEstimator\mainStateEstimator\map.mat";
     map = coder.load(mapfile);
@@ -27,22 +30,19 @@ function mainStateEst()
     T_rc2rq = map.worldObjectStruct.transforms.T_gencam2genquad;
     
     %% init ros2 subscribers
-    ekfNode = ros2node("ekf_node", domainID); %from the flight controller via the uXRCE agent
-    
-    imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort", Durability="volatile", History="keeplast", Depth=1);
-    p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseStamped', Reliability='besteffort');
-    mocapSub = ros2subscriber(ekfNode, '/fakeDrone/pose_stamped', 'geometry_msgs/PoseStamped', Reliability='besteffort'); %actually on domain ID 11
+    % ekfNode = ros2node("ekf_node", domainID); %from the flight controller via the uXRCE agent
+    % 
+    % imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort", Durability="volatile", History="keeplast", Depth=1);
+    % p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseStamped', Reliability='besteffort');
+    % mocapSub = ros2subscriber(ekfNode, '/fakeDrone/pose_stamped', 'geometry_msgs/PoseStamped', Reliability='besteffort'); %actually on domain ID 11
+    % 
+    % %should probably also make a publisher?
+    % %ekfNode = ros2node
+    % ekfPub = ros2publisher(ekfNode, 'pose_ekf', 'geometry_msgs/Pose', Reliability="besteffort"); %should update it to PoseStamped (with timestamps), but will require figuring out the jetson nano's shitty clock
+    % ekfMsg = ros2message("geometry_msgs/Pose");
 
-    %should probably also make a publisher?
-    %ekfNode = ros2node
-    ekfPub = ros2publisher(ekfNode, 'pose_ekf', 'geometry_msgs/Pose', Reliability="besteffort"); %should update it to PoseStamped (with timestamps), but will require figuring out the jetson nano's shitty clock
-    ekfMsg = ros2message("geometry_msgs/Pose");
-
-    %lastStatusTime = tic;
-    %command = 'init';
-
-     %% Log
-    fID = initEkfLog('ekfLog');
+    %% Log
+    % fID = initEkfLog('ekfLog');
    
     %% MAIN LOOP
     % %% *********************************************%%%
@@ -103,18 +103,6 @@ function mainStateEst()
      while count<20000
         %check/wait for new imu msg
         [u_new, u_prev] = getRos2Msg_imu(imuSub, single(u_prev));
-        % fprintf("\n Got new IMU message: %f", double(u_new(1)));
-        % %f", double(u_new(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
-        % fprintf("%f ", double(u_new(2)));
-        % fprintf("%f ", double(u_new(3)));
-        % fprintf("%f ", double(u_new(4)));
-        % fprintf("%f ", double(u_new(5)));
-        % fprintf("%f ", double(u_new(6)));
-        %u_new = [0 0 0 0 0 -9.79]';
-
-        % %check for new mocap message
-        % [pq_mocap_new, pq_mocap_old] = getRos2Msg_imu(mocapSub, pq_mocap_old);
-
 
         % when new IMU message is received, update state estimate
         if (sum(u_new ~= 0) && ~isnan(u_new(1)))
@@ -134,7 +122,6 @@ function mainStateEst()
                 z_prev = z_new;
                 % fprintf("New measurement!");
             end
-
             
 
             dt_new =tsNew-tsPrev;

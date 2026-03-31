@@ -24,7 +24,7 @@ function visStateEst()
     T_rq2rc = [0 1 0 0; -1 0 0 0; 0 0 1 0; 0 0 0 1];
 
     %init ROS2 publisher
-    rosID = 1;
+    rosID = 11;
     p3pNode = ros2node("p3p_node", rosID);
     p3pPub = ros2publisher(p3pNode, "/pose_p3p", "geometry_msgs/PoseStamped");
     p3pMsg = ros2message("geometry_msgs/PoseStamped");
