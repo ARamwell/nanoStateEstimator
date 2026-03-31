@@ -63,6 +63,14 @@ function fileID = initEkfLog(fileName)
         end
     end
 
+    % Ground truth psoe (7)
+    idx = 1;
+    for i = 1:7
+        fprintf(fileID,'gt_%d,',int8(idx));
+        idx = idx + 1;
+        
+    end
+
     fprintf(fileID,'\n');
 end
 

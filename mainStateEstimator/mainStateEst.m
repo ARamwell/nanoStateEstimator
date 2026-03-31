@@ -30,7 +30,7 @@ function mainStateEst()
     
     imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort", Durability="volatile", History="keeplast", Depth=1);
     p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseStamped', Reliability='besteffort');
-    %mocapSub = ros2subscriber(ekfNode, '/x500_A/pose_stamped', 'geometry_msgs/PoseStamped', Reliability='besteffort'); %actually on domain ID 11
+    mocapSub = ros2subscriber(ekfNode, '/fakeDrone/pose_stamped', 'geometry_msgs/PoseStamped', Reliability='besteffort'); %actually on domain ID 11
 
     %should probably also make a publisher?
     %ekfNode = ros2node
@@ -68,6 +68,7 @@ function mainStateEst()
     %t0_us = uint64(t0*1e6);
     [u_prev, ~] = getRos2Msg_imu(imuSub, single(zeros(6,1)));
     [tsPrev, ~, ~] = getCurrentTimestamp;
+    [gt_prev, ~] = getRos2Msg_mocap(mocapSub, single(zeros(7,1)));
     %tsPrev = double(tsPrev_us)*1e-6;
     fprintf("Initialising state estimator at: %f", double(x_k_(1,1)) );%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
     fprintf("%f ", double(x_k_(2,1)));
@@ -77,12 +78,30 @@ function mainStateEst()
     fprintf("%f ", double(x_k_(6,1)));
     fprintf("%f ", double(x_k_(7,1)));
 
+    %Print first output
+    ekfResult.time = tsPrev; 
+    ekfResult.x_ = x_k_; %state estimate - 16-element column vector  **log
+    ekfResult.u = u_prev; %IMU data = 6-element column vector **log
+    ekfResult.z = zeros(7,1); %visual pose estimate - 7 el col vec    **log
+    ekfResult.xHat = zeros(16,1); %state estimate from IMU - 16-element column vector **log
+    ekfResult.zHat= zeros(7,1); %predicted visual pose estimate - 7-el col vec 
+    ekfResult.elapsedTime = tsPrev-t0; %time since EKF initialisation **log
+    ekfResult.timeSinceLastCorrection= timeSinceLastCorrection; %time since last camera update **log
+    ekfResult.y = zeros(7,1); %measurement residual - 7-el col vec **log
+    ekfResult.K = eye(16); %Kalman gain - 
+    ekfResult.P = eye(16); %16x16 matrix **log diagonal
+    ekfResult.PHat = eye(16);%16x16 matrix **log diagonal
+    ekfResult.S = eye(7);%7x7 matrix **log diagonal
+    ekfResult.W = eye(7);%7x7 matrix **log diagonal
+    ekfResult.Q = eye(6);
+    writeToEkfLog(fID, ekfResult, gt_prev); 
+
 
 
         %% MAIN STATE ESTIMATOR
      while count<20000
         %check/wait for new imu msg
-        [u_new, u_prev] = getRos2Msg_imu(imuSub, single(u_prev));S
+        [u_new, u_prev] = getRos2Msg_imu(imuSub, single(u_prev));
         % fprintf("\n Got new IMU message: %f", double(u_new(1)));
         % %f", double(u_new(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
         % fprintf("%f ", double(u_new(2)));
@@ -99,6 +118,9 @@ function mainStateEst()
         % when new IMU message is received, update state estimate
         if (sum(u_new ~= 0) && ~isnan(u_new(1)))
             [tsNew, ~, ~] = getCurrentTimestamp;   
+
+            %get groundtruth            
+            [gt_new, gt_prev] = getRos2Msg_mocap(mocapSub, gt_prev);
             
             %check for new p3p msg
             zFlag = 0;
@@ -111,6 +133,8 @@ function mainStateEst()
                 z_prev = z_new;
                 % fprintf("New measurement!");
             end
+
+            
 
             dt_new =tsNew-tsPrev;
             dt_av = double(0.9*dt_av + 0.1*dt_new);
@@ -178,7 +202,7 @@ function mainStateEst()
             send(ekfPub, ekfMsg);
 
             %log data
-            writeToEkfLog(fID, ekfResult);  
+            writeToEkfLog(fID, ekfResult, gt_new);  
         end
     end
   
