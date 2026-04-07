@@ -1,12 +1,13 @@
-function mainStateEst_Prototype()
+%function mainStateEst_Prototype()
 %MAIN Summary of this function goes here
 %   Detailed explanation goes here
     
     %% import log
     nanoLog=readtable("C:\Users\Alyssa\Downloads\ekfLog.txt");
-    u_hist = [nanoLog.u_1;nanoLog.u_2;nanoLog.u_3;nanoLog.u_4;nanoLog.u_5;nanoLog.u_6];
-    z_hist = [nanoLog.z_1; nanoLog.z_2;nanoLog.z_3;nanoLog.z_4;nanoLog.z_5;nanoLog.z_6;nanoLog.z_7];
-    t_hist = 
+    u_hist = [nanoLog.u_1,nanoLog.u_2,nanoLog.u_3,nanoLog.u_4,nanoLog.u_5,nanoLog.u_6]';
+    z_hist = [nanoLog.z_1, nanoLog.z_2,nanoLog.z_3,nanoLog.z_4,nanoLog.z_5,nanoLog.z_6,nanoLog.z_7]';
+    t_hist = (nanoLog.timestamp'*(10^-6));
+    ts_hist = (nanoLog.timestamp');
     
 
     %% init parameters
@@ -65,12 +66,15 @@ function mainStateEst_Prototype()
     z_prev = double(zeros(7,1));
 
 
-    %wait for first imu msg
+%%  %wait for first imu msg
     %t0_us = uint64(t0*1e6);
-    [u_prev, ~] = getRos2Msg_imu(imuSub, single(zeros(6,1)));
-    [tsPrev, ~, ~] = getCurrentTimestamp;
-    [gt_prev, ~] = getRos2Msg_mocap(mocapSub, double(zeros(7,1)));
-    %tsPrev = double(tsPrev_us)*1e-6;
+    %[u_prev, ~] = getRos2Msg_imu(imuSub, single(zeros(6,1)));
+    %[tsPrev, ~, ~] = getCurrentTimestamp;
+    %[gt_prev, ~] = getRos2Msg_mocap(mocapSub, double(zeros(7,1)));
+
+    u_prev = u_hist(:,1);
+    tsPrev = ts_hist(:,1);
+
     fprintf("Initialising state estimator at: %f", double(x_k_(1,1)) );%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
     fprintf("%f ", double(x_k_(2,1)));
     fprintf("%f |", double(x_k_(3,1)));
@@ -80,40 +84,49 @@ function mainStateEst_Prototype()
     fprintf("%f ", double(x_k_(7,1)));
 
     %Print first output
-    ekfResult.time = tsPrev; 
-    ekfResult.x_ = x_k_; %state estimate - 16-element column vector  **log
-    ekfResult.u = u_prev; %IMU data = 6-element column vector **log
-    ekfResult.z = zeros(7,1); %visual pose estimate - 7 el col vec    **log
-    ekfResult.xHat = zeros(16,1); %state estimate from IMU - 16-element column vector **log
-    ekfResult.zHat= zeros(7,1); %predicted visual pose estimate - 7-el col vec 
-    ekfResult.elapsedTime = tsPrev-t0; %time since EKF initialisation **log
-    ekfResult.timeSinceLastCorrection= timeSinceLastCorrection; %time since last camera update **log
-    ekfResult.y = zeros(7,1); %measurement residual - 7-el col vec **log
-    ekfResult.K = zeros(16,7); %Kalman gain - 
-    ekfResult.P = zeros(16, 16); %16x16 matrix **log diagonal
-    ekfResult.PHat = zeros(16, 16);%16x16 matrix **log diagonal
-    ekfResult.S = zeros(7,7);%7x7 matrix **log diagonal
-    ekfResult.W = zeros(7,7);%7x7 matrix **log diagonal
-    ekfResult.Q = zeros(12,12);
-    writeToEkfLog(fID, ekfResult, gt_prev); 
+    ekfResult.time(:,count) = tsPrev; 
+    ekfResult.x_(:,count) = x_k_; %state estimate - 16-element column vector  **log
+    ekfResult.u(:,count) = u_prev; %IMU data = 6-element column vector **log
+    ekfResult.z(:,count) = zeros(7,1); %visual pose estimate - 7 el col vec    **log
+    ekfResult.xHat(:,count) = zeros(16,1); %state estimate from IMU - 16-element column vector **log
+    ekfResult.zHat(:,count)= zeros(7,1); %predicted visual pose estimate - 7-el col vec 
+    ekfResult.elapsedTime(:,count) = tsPrev-t0; %time since EKF initialisation **log
+    ekfResult.timeSinceLastCorrection(:,count)= timeSinceLastCorrection; %time since last camera update **log
+    ekfResult.y(:,count) = zeros(7,1); %measurement residual - 7-el col vec **log
+    ekfResult.K(:,:,count) = zeros(16,7); %Kalman gain - 
+    ekfResult.P(:,:,count) = zeros(16, 16); %16x16 matrix **log diagonal
+    ekfResult.PHat(:,:,count) = zeros(16, 16);%16x16 matrix **log diagonal
+    ekfResult.S(:,:,count) = zeros(7,7);%7x7 matrix **log diagonal
+    ekfResult.W(:,:,count) = zeros(7,7);%7x7 matrix **log diagonal
+    ekfResult.Q(:,:,count) = zeros(12,12);
+    
+    %writeToEkfLog(fID, ekfResult, gt_prev); 
+    %ekfFull(1)=ekfResult;
 
 
 
         %% MAIN STATE ESTIMATOR
      while count<20000
+        if count>(size(t_hist, 2)-1)
+            return;
+        end
+        
         %check/wait for new imu msg
-        [u_new, u_prev] = getRos2Msg_imu(imuSub, single(u_prev));
+        %[u_new, u_prev] = getRos2Msg_imu(imuSub, single(u_prev));
+        u_new = u_hist(:, count+1);
 
         % when new IMU message is received, update state estimate
         if (sum(u_new ~= 0) && ~isnan(u_new(1)))
-            [tsNew, ~, ~] = getCurrentTimestamp;   
+            %[tsNew, ~, ~] = getCurrentTimestamp;   
+            tsNew = t_hist(:, count+1);
 
             %get groundtruth            
-            [gt_new, gt_prev] = getRos2Msg_mocap(mocapSub, gt_prev);
+            %[gt_new, gt_prev] = getRos2Msg_mocap(mocapSub, gt_prev);
             
             %check for new p3p msg
             zFlag = 0;
-            [z_new] = getRos2Msg_p3p(p3pSub, lastCorrectionTime, z_prev);
+            %[z_new] = getRos2Msg_p3p(p3pSub, lastCorrectionTime, z_prev);
+            z_new = z_hist(:,count+1);
             zSum = sum(z_new); %Nans don't work in codegen, they become zeroes
             if zSum ~= 0 && ~isnan(zSum)
                 zFlag = 1;
@@ -123,9 +136,10 @@ function mainStateEst_Prototype()
                 % fprintf("New measurement!");
             end
             
-
-            dt_new =tsNew-tsPrev;
-            dt_av = double(0.9*dt_av + 0.1*dt_new);
+            if count>=2
+                dt_new =tsNew-tsPrev;
+                dt_av = double(0.9*dt_av + 0.1*dt_new);
+            end
             % fprintf("\n Timestep: %f", dt_av);
             timeSinceLastCorrection = tsNew-lastCorrectionTime; %how much time has passed since we last got a visual pose estimate?
                 
@@ -148,31 +162,31 @@ function mainStateEst_Prototype()
             dt_av_s = double(dt_av);
             [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, double(u_new), Q, z_new, W_k, dt_av_s, integ, alpha, meas_count, zFlag);
     
-            fprintf("\n");
-            fprintf("New state: %f", double(x_k_(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
-            fprintf("%f ", double(x_k_(2)));
-            fprintf("%f ", double(x_k_(3)));
-            fprintf("%f ", double(x_k_(4)));
-            fprintf("%f ", double(x_k_(5)));
-            fprintf("%f ", double(x_k_(6)));
-            fprintf("%f ", double(x_k_(7)));
+            % fprintf("\n");
+            % fprintf("New state: %f", double(x_k_(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
+            % fprintf("%f ", double(x_k_(2)));
+            % fprintf("%f ", double(x_k_(3)));
+            % fprintf("%f ", double(x_k_(4)));
+            % fprintf("%f ", double(x_k_(5)));
+            % fprintf("%f ", double(x_k_(6)));
+            % fprintf("%f ", double(x_k_(7)));
 
             count=count+1;  
-            ekfResult.time = tsNew; 
-            ekfResult.x_ = x_k_; %state estimate - 16-element column vector  **log
-            ekfResult.u = u_new; %IMU data = 6-element column vector **log
-            ekfResult.z = z_out_k; %visual pose estimate - 7 el col vec    **log
-            ekfResult.xHat = xHat_k; %state estimate from IMU - 16-element column vector **log
-            ekfResult.zHat= zHat_k; %predicted visual pose estimate - 7-el col vec 
-            ekfResult.elapsedTime = tsNew-t0; %time since EKF initialisation **log
-            ekfResult.timeSinceLastCorrection= timeSinceLastCorrection; %time since last camera update **log
-            ekfResult.y = y_k; %measurement residual - 7-el col vec **log
-            ekfResult.K = K_k; %Kalman gain - 
-            ekfResult.P = P_k_; %16x16 matrix **log diagonal
-            ekfResult.PHat = PHat_k;%16x16 matrix **log diagonal
-            ekfResult.S = S_k;%7x7 matrix **log diagonal
-            ekfResult.W = W_k;%7x7 matrix **log diagonal
-            ekfResult.Q = Q_k;
+            ekfResult.time(:, count) = tsNew; 
+            ekfResult.x_(:, count) = x_k_; %state estimate - 16-element column vector  **log
+            ekfResult.u(:, count) = u_new; %IMU data = 6-element column vector **log
+            ekfResult.z(:, count) = z_out_k; %visual pose estimate - 7 el col vec    **log
+            ekfResult.xHat(:, count) = xHat_k; %state estimate from IMU - 16-element column vector **log
+            ekfResult.zHat(:, count)= zHat_k; %predicted visual pose estimate - 7-el col vec 
+            ekfResult.elapsedTime(:, count) = tsNew-t0; %time since EKF initialisation **log
+            ekfResult.timeSinceLastCorrection(:, count)= timeSinceLastCorrection; %time since last camera update **log
+            ekfResult.y(:, count) = y_k; %measurement residual - 7-el col vec **log
+            ekfResult.K(:,:, count) = K_k; %Kalman gain - 
+            ekfResult.P(:,:, count) = P_k_; %16x16 matrix **log diagonal
+            ekfResult.PHat(:,:, count) = PHat_k;%16x16 matrix **log diagonal
+            ekfResult.S(:,:, count) = S_k;%7x7 matrix **log diagonal
+            ekfResult.W(:,:, count) = W_k;%7x7 matrix **log diagonal
+            ekfResult.Q(:,:, count) = Q_k;
             
             tsPrev = tsNew;
             %tsPrev_us = tsNew_us;
@@ -180,23 +194,24 @@ function mainStateEst_Prototype()
             %prepare ros2 message - add timestamp!
             %dNow   = datetime('now');
             %ekfMsg.header.
-            ekfMsg.position.x = x_k_(1,1);
-            ekfMsg.position.y = x_k_(2,1);
-            ekfMsg.position.z = x_k_(3,1);
-            ekfMsg.orientation.w = x_k_(4,1);
-            ekfMsg.orientation.x = x_k_(5,1);
-            ekfMsg.orientation.y = x_k_(6,1);
-            ekfMsg.orientation.z = x_k_(7,1);
-            send(ekfPub, ekfMsg);
+            % ekfMsg.position.x = x_k_(1,1);
+            % ekfMsg.position.y = x_k_(2,1);
+            % ekfMsg.position.z = x_k_(3,1);
+            % ekfMsg.orientation.w = x_k_(4,1);
+            % ekfMsg.orientation.x = x_k_(5,1);
+            % ekfMsg.orientation.y = x_k_(6,1);
+            % ekfMsg.orientation.z = x_k_(7,1);
+            % send(ekfPub, ekfMsg);
 
             %log data
-            writeToEkfLog(fID, ekfResult, gt_new);  
+            %writeToEkfLog(fID, ekfResult, gt_new); 
+            %ekfFull(count) = ekfResult;
         end
     end
   
     fprintf('Shutdown complete. Total EKF loops processed: %d\n', int32(count));
 
 
-end
+%end
 
 

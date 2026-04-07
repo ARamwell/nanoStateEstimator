@@ -21,7 +21,8 @@ cfg.GenerateReport = true;
 
 
 % Define input size explicitly
-inputSize = zeros(360, 640, 3, 'uint8');
+%inputSize = zeros(360, 640, 3, 'uint8');
+inputSize = zeros(720, 1280, 3, 'uint8');
 
 % Generate code
 codegen -config cfg nanoP3p -args {inputSize} -report

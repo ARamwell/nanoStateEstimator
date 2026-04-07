@@ -5,7 +5,8 @@ function [bestPose_rc2rw] = nanoP3p(img)
 %% init variables 
 %variables
 featMap = coder.load('featureMap.mat');
-K = [  583.6734         0  309.7243;   0  582.8750  183.5180;   0         0    1.0000];
+%K = [  583.6734         0  309.7243;   0  582.8750  183.5180;   0         0    1.0000]; %640p
+K = [1218.5 0 612.2; 0 1223.7 324.3; 0 0 1];
 
 %%
 [x_det, X_W_det, id_det] = featureDetectMatch_nano(rgb2gray(img), featMap.featureMap); %detect Aruco tags
@@ -16,7 +17,13 @@ if ~isnan(x_det(1,1))
     Rt_arr = kneipWrapper(x_train, XW_train, K); %run pose estimator - gives up to four solutions, returns NaN if it can't see any features
     %Rt_best = chooseSoln(Rt_arr, x_test, XW_test, K);
     if ~isnan(Rt_arr(1,1,1))   
-        [Rt_best, numIn,~] = chooseRtWithMostInliers(K, Rt_arr, 1, x_test, XW_test);  
+        [Rt_best, numIn,~] = chooseRtWithMostInliers(K, Rt_arr, x_test, XW_test);  
+        % 
+        % %relax inlier threshold if it fails
+        % if numIn<=1
+        %     [Rt_best, numIn,~] = chooseRtWithMostInliers(K, Rt_arr, 1, x_test, XW_test);  
+        % end
+
         bestPose_rc2rw = rtToPose(Rt_best);
     end
 else

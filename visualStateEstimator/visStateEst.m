@@ -5,12 +5,14 @@ function visStateEst()
 %% Initialisations
     % Include library header
     coder.cinclude('nanoP3p.h');
+    %mapfile = "C:\Users\Alyssa\Documents\nanoStateEstimator\visualStateEstimator\map.mat";
+    %map = coder.load(mapfile);
 
     hwobj = jetson;
     % Jetson camera configuration
     camName = 'vi-output, imx219 6-0010';
-    %camRes  = [1280 720];
-    camRes  = [640 360];
+    camRes  = [1280 720];
+    %camRes  = [640 360];
     cam = camera(hwobj, camName, camRes);
    % Optional display (on Jetson monitor)
     dispObj = imageDisplay(hwobj);
@@ -21,7 +23,10 @@ function visStateEst()
     frameRGB  = zeros(height, width, 3, 'uint8');
     frameOverlay = frameRGB;
     p3pSoln = zeros(7,4);
-    T_rq2rc = [0 1 0 0; -1 0 0 0; 0 0 1 0; 0 0 0 1];
+    T_rq2rc =  [   0   -1.0000         0    0.0271; ...
+                    1.0000         0         0         0;...
+                    0         0    1.0000    0.0929; ...
+                    0         0         0    1.0000];
 
     %init ROS2 publisher
     rosID = 11;

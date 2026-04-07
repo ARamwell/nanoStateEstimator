@@ -1,4 +1,4 @@
-function writeToEkfLog(fileID, ekfResult)
+function writeToEkfLog(fileID, ekfResult, groundTruthPose)
 %WRITETOEKFLOG Summary of this function goes here
 %   Detailed explanation goes here
 %#codegen
@@ -70,7 +70,14 @@ function writeToEkfLog(fileID, ekfResult)
         end
     end
 
+    % ----  ground truth pose ----
+    %pq = groundTruthPose;
+    for r = 1:7
+        fprintf(fileID,'%.6f,', groundTruthPose(r,1));
+    end 
+
     fprintf(fileID,'\n');
+
 end
 
 
