@@ -1,5 +1,6 @@
 %%
 clear hwobj envCfg cfg
+
 deviceAddress = '192.168.0.55'; %SSH IP address
 userName = 'jetson';
 password = 'jetson';
@@ -26,6 +27,6 @@ inputSize = zeros(360, 640, 3, 'uint8');
 %inputSize = zeros(720, 1280, 3, 'uint8');
 
 % Generate code
-codegen -config cfg nanoP3p -args {inputSize} -report
+codegen -config cfg nanoP3p_fullLog -args {inputSize} -report
 
 fprintf("\n Library built successfully.\n");

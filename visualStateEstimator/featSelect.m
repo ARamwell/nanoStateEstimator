@@ -17,13 +17,14 @@ ids_test = NaN(1,4);
 if numTest>=1
     %choose ID to use for P3P (could replace this with RANSAC)
     
-    %find training ID - all others used for test
-    idx_train = find(ids'==id_train_target, 1, "first");
-    if isempty(idx_train) %id not found
-        %just use the first detected element
-        idx_train = 1;
-        id_train = 1;
-    end
+    % %find training ID - all others used for test
+    % idx_train = find(ids'==id_train_target, 1, "first");
+    % if isempty(idx_train) %id not found
+    %     %just use the first detected element
+    %     idx_train = 1;
+    %     id_train = 1;
+    % end
+    idx_train = 1;
     x_train = x_i(1:2,1:4,idx_train(1));
     XW_train = X_W(1:3,1:4, idx_train(1));
     id_train = ids(1, idx_train);

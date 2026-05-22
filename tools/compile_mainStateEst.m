@@ -1,7 +1,9 @@
-deviceAddress = '192.168.55.1'; %SSH IP address
+clear hwobj envCfg cfg
+deviceAddress = '192.168.0.55'; %SSH IP address
 userName = 'jetson';
 password = 'jetson';
 hwobj = jetson(deviceAddress,userName,password);
+hwobj_ = ros2device(deviceAddress,userName,password);
 
 
 %% Build
@@ -16,7 +18,7 @@ cfg.Hardware.RemoteDeviceAddress = deviceAddress;
 cfg.Hardware.RemoteDeviceUsername = userName;
 cfg.Hardware.RemoteDevicePassword = password;
 cfg.Hardware.DeployTo = 'Remote Device';
-cfg.Hardware.BuildAction = 'Build and load';
+cfg.Hardware.BuildAction = 'None'; %'Build and load';
 cfg.InstructionSetExtensions = "None";
 cfg.GenerateReport = true;
 cfg.HardwareImplementation.ProdLongLongMode = true;

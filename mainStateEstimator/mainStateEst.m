@@ -11,8 +11,7 @@ function mainStateEst()
     ekfHz = imuHz_ds;
     domainID = 11; %ros2 domain
 
-    %required initiali
-    % sations for codegen
+    %required initialisations for codegen
     %count = int32(0);
     u_prev = single(nan(6,1));
     %z_prev = double(zeros(7,1));
@@ -20,11 +19,11 @@ function mainStateEst()
     tsPrev = 0;
     %dt_av = double(1/imuHz_ds);
 
-    mapfile = "C:\Users\Alyssa\Documents\nanoStateEstimator\mainStateEstimator\map.mat";
-    map = coder.load(mapfile);
-    T_uw2rw = map.worldObjectStruct.transforms.T_sim2world;
-    T_imu2rq = map.worldObjectStruct.transforms.T_imu2genquad;
-    T_rc2rq = map.worldObjectStruct.transforms.T_gencam2genquad;
+    %mapfile = "C:\Users\Alyssa\Documents\nanoStateEstimator\mainStateEstimator\map.mat";
+    %map = coder.load(mapfile);
+    % T_uw2rw = map.worldObjectStruct.transforms.T_sim2world;
+    % T_imu2rq = map.worldObjectStruct.transforms.T_imu2genquad;
+    % T_rc2rq = map.worldObjectStruct.transforms.T_gencam2genquad;
     
     %% init ros2 subscribers
     ekfNode = ros2node("ekf_node", domainID); %from the flight controller via the uXRCE agent
@@ -101,6 +100,8 @@ function mainStateEst()
 
         %% MAIN STATE ESTIMATOR
      while count<20000
+        runEkf = false;
+        
         %check/wait for new imu msg
         [u_new, u_prev] = getRos2Msg_imu(imuSub, single(u_prev));
         % fprintf("\n Got new IMU message: %f", double(u_new(1)));
@@ -135,27 +136,25 @@ function mainStateEst()
                 % fprintf("New measurement!");
             end
 
-            
-
             dt_new =tsNew-tsPrev;
             dt_av = double(0.9*dt_av + 0.1*dt_new);
             % fprintf("\n Timestep: %f", dt_av);
             timeSinceLastCorrection = tsNew-lastCorrectionTime; %how much time has passed since we last got a visual pose estimate?
                 
-                % fprintf("\n");
-                % fprintf("Running with u_k: %f", double(u_new(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
-                % fprintf("%f ", double(u_new(2)));
-                % fprintf("%f ", double(u_new(3)));
-                % fprintf("%f ", double(u_new(4)));
-                % fprintf("%f ", double(u_new(5)));
-                % fprintf("%f ", double(u_new(6)));
-                % fprintf("; and z_k: %f ", double(z_new(1)));
-                % fprintf("%f ", double(z_new(2)));
-                % fprintf("%f ", double(z_new(3)));
-                % fprintf("%f ", double(z_new(4)));
-                % fprintf("%f ", double(z_new(5)));
-                % fprintf("%f ", double(z_new(6)));
-                % fprintf("%f ", double(z_new(7)));
+            % fprintf("\n");
+            % fprintf("Running with u_k: %f", double(u_new(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
+            % fprintf("%f ", double(u_new(2)));
+            % fprintf("%f ", double(u_new(3)));
+            % fprintf("%f ", double(u_new(4)));
+            % fprintf("%f ", double(u_new(5)));
+            % fprintf("%f ", double(u_new(6)));
+            % fprintf("; and z_k: %f ", double(z_new(1)));
+            % fprintf("%f ", double(z_new(2)));
+            % fprintf("%f ", double(z_new(3)));
+            % fprintf("%f ", double(z_new(4)));
+            % fprintf("%f ", double(z_new(5)));
+            % fprintf("%f ", double(z_new(6)));
+            % fprintf("%f ", double(z_new(7)));
 
                 
             dt_av_s = double(dt_av);
@@ -205,7 +204,9 @@ function mainStateEst()
             %log data
             writeToEkfLog(fID, ekfResult, gt_new);  
         end
-    end
+
+        
+     end
   
     fprintf('Shutdown complete. Total EKF loops processed: %d\n', int32(count));
 

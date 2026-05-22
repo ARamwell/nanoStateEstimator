@@ -1,4 +1,4 @@
-fileName = "C:\Users\Alyssa\OneDrive - University of Cape Town\Thesis\TestsAndResults\nano\ekfLog_noApp_microSec.txt";
+fileName = "C:\Users\Alyssa\Downloads\ekfLog.txt";
 logTbl = readtable(fileName);
 
 z3 = (logTbl.z_3(~isnan(logTbl.z_3)));

@@ -1,4 +1,5 @@
 clear hwobj envCfg cfg
+
 deviceAddress = '192.168.0.55'; %SSH IP address
 userName = 'jetson';
 password = 'jetson';
@@ -23,14 +24,14 @@ cfg.GenerateReport = true;
 hwobj.setDisplayEnvironment('0.0');
 
 % Link external CUDA library
-libPath = 'C:\Users\Alyssa\Documents\nanoStateEstimator\codegen\dll\nanoP3p';
+libPath = 'C:\Users\Alyssa\Documents\nanoStateEstimator\codegen\dll\nanoP3p_fullLog';
 cfg.CustomInclude = {libPath};
-cfg.CustomLibrary = {fullfile(libPath, 'nanoP3p.so')};
-cfg.CustomSourceCode = '#include "nanoP3p.h"';
+cfg.CustomLibrary = {fullfile(libPath, 'nanoP3p_fullLog.so')};
+cfg.CustomSourceCode = '#include "nanoP3p_fullLog.h"';
 
 
 % Code generation
-codegen -config cfg visStateEst -report
+codegen -config cfg visStateEst_fullPub -report
 
 disp("visStateEst build complete. You can now transfer it to the Jetson nano and build (remember to edit the Makefiles first).");
 

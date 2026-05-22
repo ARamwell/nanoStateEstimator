@@ -1,6 +1,6 @@
 %Script to convert ekfLog into ekfResult, p3pResult, and groundTruth
 
-function [ekfResult, groundTruth] = readEkfLog(filename)
+function [ekfResult, groundTruth, trajErr] = readEkfLog(filename, changeGtFrame)
 %READEKFLOG Reconstruct EKF results from log file
 
     %% ---- Load data ----
@@ -73,30 +73,49 @@ function [ekfResult, groundTruth] = readEkfLog(filename)
     ekfResult.Q = [];
     ekfResult.elapsedTime = [];
 
+    %% Convert some fields
+    startTime = ekfResult.time(1,1);
+    ekfResult.elapsedTime = (ekfResult.time - startTime)* 10^-6;
+    ekfResult.timeSinceLastCorrection = ekfResult.timeSinceLastCorrection * 10^-6;
 
     %% Populate groundTruth
-    T_world2mocap = [[0 -1 0; 0 0 -1; 1 0 0],[1.6; 2.35; 458.91]*10^-3; 0 0 0 1];
-    
-    T_quad2marker = [[0 -1 0; 0 0 -1; 1 0 0],[-13.44; 13.65; 13.68]*10^-3; 0 0 0 1];
-    
-
     nGT = 7;
     gt_marker2mocap = data(:,col:col+nGT-1)'; 
-    gt_quad2world = nan(size(gt_marker2mocap));
-    for c=1:size(gt_marker2mocap, 2)
-        if ~isnan(gt_marker2mocap(1,c))
-            p_marker2mocap = gt_marker2mocap(1:3,c);
-            q_marker2mocap = gt_marker2mocap(4:7,c);
-            R_marker2mocap = quat2rotm(q_marker2mocap');
-            T_marker2mocap = [R_marker2mocap p_marker2mocap; 0 0 0 1];
-            T_quad2world = invertT(T_world2mocap) * T_marker2mocap * T_quad2marker;
-            gt_quad2world(:,c)= [T_quad2world(1:3,4); tform2quat(T_quad2world)'];
-        end
+    
+    if changeGtFrame
+        gt_quad2world=convertMocap2World(gt_marker2mocap);
+    else
+        gt_quad2world=gt_marker2mocap;
     end
-            
+    % 
+    % T_world2mocap = [[0 -1 0; 0 0 -1; 1 0 0],[1.6; 2.35; 458.91]*10^-3; 0 0 0 1];
+    % 
+    % T_quad2marker = [[0 -1 0; 0 0 -1; 1 0 0],[-13.44; 13.65; 13.68]*10^-3; 0 0 0 1];
+    % 
+    % 
+    % 
+    % 
+    % gt_quad2world = nan(size(gt_marker2mocap));
+    % for c=1:size(gt_marker2mocap, 2)
+    %     if ~isnan(gt_marker2mocap(1,c))
+    %         p_marker2mocap = gt_marker2mocap(1:3,c);
+    %         q_marker2mocap = gt_marker2mocap(4:7,c);
+    %         R_marker2mocap = quat2rotm(q_marker2mocap');
+    %         T_marker2mocap = [R_marker2mocap p_marker2mocap; 0 0 0 1];
+    %         T_quad2world = invertT(T_world2mocap) * T_marker2mocap * T_quad2marker;
+    %         gt_quad2world(:,c)= [T_quad2world(1:3,4); tform2quat(T_quad2world)'];
+    %     end
+    % end
+    % 
+   
     groundTruth.quad.state =gt_quad2world; 
     groundTruth.quad.time = data(:,1);
     
+
+    %%
+    idx_validGT = ~isnan(gt_quad2world(1,:));
+    trajErr = evaluateTrackingPerformance(ekfResult.x_(1:7,idx_validGT), gt_quad2world(1:7,idx_validGT), 'none');
+
 
 
 end
