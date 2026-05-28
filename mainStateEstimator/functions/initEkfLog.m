@@ -63,12 +63,21 @@ function fileID = initEkfLog(fileName)
         end
     end
 
-    % Ground truth psoe (7)
-    idx = 1;
+    % Ground truth pose (7)
     for i = 1:7
-        fprintf(fileID,'gt_%d,',int8(idx));
-        idx = idx + 1;
-        
+        fprintf(fileID,'gt_%d,',int8(i));
+    end
+
+    % P diagonal (16)
+    for i = 1:16
+        fprintf(fileID,'P_%d,',int8(i));
+    end
+
+    % P3P pose array: 4 poses x 7 (position + quaternion)
+    for p = 1:4
+        for r = 1:7
+            fprintf(fileID,'p3p%d_%d,',int8(p), int8(r));
+        end
     end
 
     fprintf(fileID,'\n');

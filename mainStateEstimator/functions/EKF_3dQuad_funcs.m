@@ -33,7 +33,7 @@ classdef EKF_3dQuad_funcs
         %           T_imu2rq - homog transformation matrix from IMU to body frame (rq - "real quad")
         %           T_rc2rq - homog. transformation matrix from aiding sensor to body frame ("real camera" to rq)
         %       
-        
+        mahaGate = 25;
         
         %*************************************************
         %----------- STEP 0: INITIALISATIONS -------------
@@ -77,14 +77,7 @@ classdef EKF_3dQuad_funcs
         %*************************************************
         %ONLY RUN CORRECTION IF A NEW MEASUREMENT HAS BEEN DETECTED
 
-            if ~z_flag % if no new measurement
-                x_new = x_new_hat;
-                P_new = P_new_hat;
-                z_new_hat = nan(7,1);
-                y_new = nan(7,1);
-                %C_new = C_k;
-               
-            else
+            if z_flag % if new measurement
         %---------- STEP 2: MEASUREMENT UPDATE------------    
 
                 %Predict new measurement z (may differ from actual measurement) and get
@@ -108,62 +101,77 @@ classdef EKF_3dQuad_funcs
                 %Enforce positive definite-ness
                 S_new_hat = (S_new_hat + S_new_hat')/2;
 
+                %gatePass = EKF_3dQuad_funcs.mahalanobisGating(y_new, S_new_hat, mahaGate);
+                gatePass=1;
+
         
         %*************************************************
         %------------- STEP 3: STATE UPDATE -------------- 
+                if ~gatePass
+                    z_flag = 0;
+                else
+                    %Calculate Kalman gain
+                    K_new = P_new_hat * transpose(H_new)/(S_new_hat);
                 
-                %Calculate Kalman gain
-                K_new = P_new_hat * transpose(H_new)/(S_new_hat);
-            
-                %Update state est
-                x_new = x_new_hat + (K_new * y_new);
-            
-                %Update state covariance
-                I = eye(size(H_new,2), size(H_new,2)); %make identity matrix of appropriate size
-                P_new = (I - K_new * H_new) * P_new_hat;
+                    %Update state est
+                    x_new = x_new_hat + (K_new * y_new);
                 
-                %Enforce positive definite-ness
-                P_new = (P_new + P_new')/2;
-        
-
-                % %*************************************************
-                % %------------ STEP 4: MEAS COV UPDATE ------------
-                % if alpha ~= 0 %this is effectively the control flag
-                %     threshold = 1/(1-alpha);
-                % 
-                %     if meas_count<threshold %if not enough measurements have been taken
-                %         C_new = (C_k * (meas_count-1) + (y_new * y_new'))/meas_count;
-                %         W_new = W_k;
-                %     else
-                %         C_new = alpha*C_k + (1-alpha) * (y_new * y_new');
-                %         W_new = C_new - H_new * P_new_hat * H_new';
-                %     end
-                % 
-                % else
-                %     C_new = zeros(size(W_k));
-                %     W_new = W_k;
-                % end
-                % %*************************************************
-
-                %*************************************************
-                %------------ STEP 4: MEAS COV UPDATE ------------
-                if alpha ~= 0 %this is effectively the control flag
-                    threshold = 1/(1-alpha);
-
-                    %a posteriori measurement estimate
-                    [z_new_post, ~] = EKF_3dQuad_funcs.meas_predict(x_new);
-
-                    %a posteriori measurement residual
-                    v_new = z_new - z_new_post;
-                    %v_new = (eye() - H_new_hat * K_new) * y_new;
-
-                    if meas_count<threshold %if not enough measurements have been taken
-                        W_new = W_k;% * (meas_count-1) + (1/meas_count)*((v_new * v_new') +  H_new * P_new_hat * H_new');                        
-                    else
-                        W_new = alpha*W_k + (1-alpha)*((v_new * v_new') +  H_new * P_new_hat * H_new');
+                    %Update state covariance
+                    I = eye(size(H_new,2), size(H_new,2)); %make identity matrix of appropriate size
+                    P_new = (I - K_new * H_new) * P_new_hat;
+                    
+                    %Enforce positive definite-ness
+                    P_new = (P_new + P_new')/2;
+            
+    
+                    % %*************************************************
+                    % %------------ STEP 4: MEAS COV UPDATE ------------
+                    % if alpha ~= 0 %this is effectively the control flag
+                    %     threshold = 1/(1-alpha);
+                    % 
+                    %     if meas_count<threshold %if not enough measurements have been taken
+                    %         C_new = (C_k * (meas_count-1) + (y_new * y_new'))/meas_count;
+                    %         W_new = W_k;
+                    %     else
+                    %         C_new = alpha*C_k + (1-alpha) * (y_new * y_new');
+                    %         W_new = C_new - H_new * P_new_hat * H_new';
+                    %     end
+                    % 
+                    % else
+                    %     C_new = zeros(size(W_k));
+                    %     W_new = W_k;
+                    % end
+                    % %*************************************************
+    
+                    %*************************************************
+                    %------------ STEP 4: MEAS COV UPDATE ------------
+                    if alpha ~= 0 %this is effectively the control flag
+                        threshold = 1/(1-alpha);
+    
+                        %a posteriori measurement estimate
+                        [z_new_post, ~] = EKF_3dQuad_funcs.meas_predict(x_new);
+    
+                        %a posteriori measurement residual
+                        v_new = z_new - z_new_post;
+                        %v_new = (eye() - H_new_hat * K_new) * y_new;
+    
+                        if meas_count<threshold %if not enough measurements have been taken
+                            W_new = W_k;% * (meas_count-1) + (1/meas_count)*((v_new * v_new') +  H_new * P_new_hat * H_new');                        
+                        else
+                            W_new = alpha*W_k + (1-alpha)*((v_new * v_new') +  H_new * P_new_hat * H_new');
+                        end
                     end
                 end
                 %*************************************************
+            end
+            if ~z_flag
+                x_new = x_new_hat;
+                P_new = P_new_hat;
+                z_new_hat = nan(7,1);
+                y_new = nan(7,1);
+                z_new = nan(7,1);
+                S_new_hat = nan(7,7);
+                %C_new = C_k;
             end
                  
 
@@ -687,6 +695,8 @@ classdef EKF_3dQuad_funcs
             w_ba = 0.01*w_a;
             w_bg = 0.01*w_g;
 
+            %w_a = w_a*4; %doubled for test
+
             %%TUNE 2S
              % w_a = [0.04^2 0.04^2 0.04^2];%used for full rate
              % w_g = [0.16^2 0.16^2 0.16^2];
@@ -727,6 +737,7 @@ classdef EKF_3dQuad_funcs
 
            
             Q_ =diag([w_g w_a w_ba w_bg]);
+            Q_= Q_;%*10; %inflated for physical tests
 
             
 
@@ -782,6 +793,16 @@ classdef EKF_3dQuad_funcs
 
         function y_true = calcTrueResidual(integ, trueState)
 
+        end
+        %------------------------------------------------------------%
+        %------------------------------------------------------------%
+
+        function mahPass = mahalanobisGating(r_k, S_k, threshold)
+            mahPass = 0;
+            mahDist = (r_k' / S_k) * r_k;
+            if mahDist < threshold
+                mahPass=1;
+            end
         end
         %------------------------------------------------------------%
 

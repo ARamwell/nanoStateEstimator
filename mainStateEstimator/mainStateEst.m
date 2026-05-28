@@ -29,7 +29,7 @@ function mainStateEst()
     ekfNode = ros2node("ekf_node", domainID); %from the flight controller via the uXRCE agent
     
     imuSub = ros2subscriber(ekfNode, '/fmu/out/sensor_combined', 'px4_msgs/SensorCombined', Reliability="besteffort", Durability="volatile", History="keeplast", Depth=1);
-    p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseStamped', Reliability='besteffort');
+    p3pSub = ros2subscriber(ekfNode, 'pose_p3p', 'geometry_msgs/PoseArray', Reliability='besteffort');
     mocapSub = ros2subscriber(ekfNode, '/fakeDrone/pose_stamped', 'geometry_msgs/PoseStamped', Reliability='besteffort'); %actually on domain ID 11
 
     %should probably also make a publisher?
@@ -62,13 +62,15 @@ function mainStateEst()
     ts_lastCorrection = 0;
     timeSinceLastCorrection = 999;
     z_prev = double(zeros(7,1));
-
-
+    z_arr_new = double(zeros(7,4));
+    z_arr_prev =double(zeros(7,4));
+   
     %wait for first imu msg
     %t0_us = uint64(t0*1e6);
     [u_prev, ~] = getRos2Msg_imu(imuSub, single(zeros(6,1)));
     [tsPrev, ~, ~] = getCurrentTimestamp;
     [gt_prev, ~] = getRos2Msg_mocap(mocapSub, double(zeros(7,1)));
+    [z_arr_prev, ~, ~] = getRos2Msg_p3pArr(p3pSub, tsPrev, z_arr_prev);
     %tsPrev = double(tsPrev_us)*1e-6;
     fprintf("Initialising state estimator at: %f", double(x_k_(1,1)) );%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
     fprintf("%f ", double(x_k_(2,1)));
@@ -94,7 +96,7 @@ function mainStateEst()
     ekfResult.S = zeros(7,7);%7x7 matrix **log diagonal
     ekfResult.W = zeros(7,7);%7x7 matrix **log diagonal
     ekfResult.Q = zeros(12,12);
-    writeToEkfLog(fID, ekfResult, gt_prev); 
+    writeToEkfLog(fID, ekfResult, gt_prev, z_arr_prev); 
 
 
 
@@ -126,13 +128,18 @@ function mainStateEst()
             
             %check for new p3p msg
             zFlag = 0;
-            [z_new] = getRos2Msg_p3p(p3pSub, lastCorrectionTime, z_prev);
-            zSum = sum(z_new); %Nans don't work in codegen, they become zeroes
-            if zSum ~= 0 && ~isnan(zSum)
-                zFlag = 1;
+            z_new =nan(7,1);
+            [z_arr_new, z_arr_prev, zOk] = getRos2Msg_p3pArr(p3pSub, lastCorrectionTime, z_arr_prev);
+            if zOk
+                %choose z to use
+                if tsNew-lastCorrectionTime < 0.3
+                    z_new = chooseMinPoseErr_nano(z_arr_new, x_k_(1:7), 1.2, 2);
+                else
+                    z_new = z_arr_new(:,1); %use first solution - this is the "best" soln according to the pose disambiguator
+                end
                 lastCorrectionTime = tsNew;
+                zFlag = 1;
                 meas_count = meas_count + 1;
-                z_prev = z_new;
                 % fprintf("New measurement!");
             end
 
@@ -156,7 +163,6 @@ function mainStateEst()
             % fprintf("%f ", double(z_new(6)));
             % fprintf("%f ", double(z_new(7)));
 
-                
             dt_av_s = double(dt_av);
             [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, double(u_new), Q, z_new, W_k, dt_av_s, integ, alpha, meas_count, zFlag);
     
@@ -202,7 +208,7 @@ function mainStateEst()
             send(ekfPub, ekfMsg);
 
             %log data
-            writeToEkfLog(fID, ekfResult, gt_new);  
+            writeToEkfLog(fID, ekfResult, gt_new, z_arr_new);  
         end
 
         

@@ -1,6 +1,6 @@
-function writeToEkfLog(fileID, ekfResult, groundTruthPose)
-%WRITETOEKFLOG Summary of this function goes here
-%   Detailed explanation goes here
+function writeToEkfLog(fileID, ekfResult, groundTruthPose, p3pArr)
+%WRITETOEKFLOG Append one EKF timestep row to the log file.
+%   p3pArr: 7x4 [position(3); quaternion wxyz(4)] per P3P hypothesis.
 %#codegen
 
     ekfSize = size(ekfResult.x_,1);
@@ -70,11 +70,29 @@ function writeToEkfLog(fileID, ekfResult, groundTruthPose)
         end
     end
 
-    % ----  ground truth pose ----
-    %pq = groundTruthPose;
+    % ---- ground truth pose (7) ----
     for r = 1:7
         fprintf(fileID,'%.6f,', groundTruthPose(r,1));
-    end 
+    end
+
+    % ---- P diagonal (16) ----
+    Pcov = ekfResult.P;
+    if ekfSize == 10
+        PcovPad = zeros(16,16);
+        PcovPad(1:10,1:10) = Pcov;
+    else
+        PcovPad = Pcov;
+    end
+    for i = 1:16
+        fprintf(fileID,'%.6f,', PcovPad(i,i));
+    end
+
+    % ---- P3P pose array: 4 poses x 7 (position + quaternion) ----
+    for p = 1:4
+        for r = 1:7
+            fprintf(fileID,'%.6f,', p3pArr(r,p));
+        end
+    end
 
     fprintf(fileID,'\n');
 

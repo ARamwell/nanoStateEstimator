@@ -21,12 +21,13 @@ function visStateEst()
     frameRGB  = zeros(height, width, 3, 'uint8');
     frameOverlay = frameRGB;
     p3pSoln = zeros(7,4);
+    quadPoseArr = zeros(7,4);
 
     %init ROS2 publisher
     rosID = 11;
     p3pNode = ros2node("p3p_node", rosID);
-    p3pPub = ros2publisher(p3pNode, "/pose_p3p", "geometry_msgs/PoseStamped");
-    p3pMsg = ros2message("geometry_msgs/PoseStamped");
+    p3pPub = ros2publisher(p3pNode, "/pose_p3p", "geometry_msgs/PoseArray");
+    p3pMsg = ros2message("geometry_msgs/PoseArray");
 
     %% System settings
     T_rq2rc = [ 0.0385   -0.9988    0.0299    0.0395; ...
@@ -44,30 +45,39 @@ function visStateEst()
         coder.ceval('nanoP3p', coder.rref(frameRGB), coder.wref(p3pSoln));
 
         %convert to quad frame
-        quadPose = tFormPQRight(p3pSoln, invertT(T_rq2rc));
-
-        %Populate ROS2 message
-        p3pMsg.header.stamp.sec = ts_sec;
-        p3pMsg.header.stamp.nanosec = ts_nsec;
-        p3pMsg.pose.position.x = quadPose(1,1);
-        p3pMsg.pose.position.y = quadPose(2,1);
-        p3pMsg.pose.position.z = quadPose(3,1);
-        p3pMsg.pose.orientation.w = quadPose(4,1);
-        p3pMsg.pose.orientation.x = quadPose(5,1);
-        p3pMsg.pose.orientation.y = quadPose(6,1);
-        p3pMsg.pose.orientation.z = quadPose(7,1);
+        quadPoseArr=p3pSoln;%Send full pose array 
+        for n=1:4
+            quadPoseArr(:,n)= tFormPQRight(p3pSoln(:,n), invertT(T_rq2rc));
+        end
+        p3pMsg = populateRos2PoseArray(quadPoseArr, ts_sec, ts_nsec);
         send(p3pPub, p3pMsg);
+
+        % %Populate ROS2 message
+        % p3pMsg.header.stamp.sec = ts_sec;
+        % p3pMsg.header.stamp.nanosec = ts_nsec;
+        % for g=1:size(quadPose,2)
+        %     poseTemplate.position.x = quadPose(1,g);
+        %     poseTemplate.position.y = quadPose(2,g);
+        %     poseTemplate.position.z = quadPose(3,g);
+        %     poseTemplate.orientation.w = quadPose(4,g);
+        %     poseTemplate.orientation.x = quadPose(5,g);
+        %     poseTemplate.orientation.y = quadPose(6,g);
+        %     poseTemplate.orientation.z = quadPose(7,g);
+        %     p3pMsg.poses(g)=poseTemplate;
+        % end
+        % send(p3pPub, p3pMsg);
         
         %optional: display iamge, and overlay with calculated pose.
+        % image(dispObj, frameRGB);
         %frameOverlay = overlayPoseOnImage(frameRGB, p3pSoln); %add overlay
         %image(dispObj, frameOverlay); %display image
 
         %Optional: print calculated pose in terminal
-        % fprintf('Soln: \n');
-        % for i = 1:size(p3pSoln,1)
-        %     fprintf('%.6f %.6f %.6f %.6f\n', p3pSoln(i,1), p3pSoln(i,2), p3pSoln(i,3), p3pSoln(i,4));
-        % end
-        % fprintf('\n');
+        fprintf('Soln: \n');
+        for h = 1:size(p3pSoln,1)
+             fprintf('%.6f %.6f %.6f %.6f\n', p3pSoln(h,1), p3pSoln(h,2), p3pSoln(h,3), p3pSoln(h,4));
+        end
+        fprintf('\n');
         
         %Optional: print image to text file. Slows down A LOT - use only
         %for deubgging

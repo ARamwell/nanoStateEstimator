@@ -65,11 +65,36 @@ function [ekfResult, groundTruth, trajErr] = readEkfLog(filename, changeGtFrame)
     end
     col = col + nz*nz;
 
+    %% ---- ground truth pose (7) ----
+    nGT = 7;
+    gt_marker2mocap = data(:,col:col+nGT-1)';
+    col = col + nGT;
+
+    %% ---- P diagonal (16 per timestep) ---
+    P_d = data(:,col:col+nx-1);
+    col = col + nx;
+
+    ekfResult.P = zeros(nx,nx,N);
+    for k = 1:N
+        ekfResult.P(:,:,k) = diag(P_d(k,:));
+    end
+    % 
+    % ekfResult.P = data(:,col:col+nx-1)';
+    %     for k = 1:N
+    %     ekfResult.PHat(:,:,k) = upperTriToFull(PHat_ut(k,:), nx);
+    % end
+    % col = col + nx;
+
+    %% ---- P3P pose array (4 x 7) ----
+    nP3p = 4 * nz;
+    p3pFlat = data(:,col:col+nP3p-1);
+    col = col + nP3p;
+    ekfResult.p3pArr = reshape(p3pFlat', nz, 4, N);
+
     %% ---- Optional fields (not logged anymore) ----
     ekfResult.xHat = [];
     ekfResult.zHat = [];
     ekfResult.K = [];
-    ekfResult.P = [];
     ekfResult.Q = [];
     ekfResult.elapsedTime = [];
 
@@ -79,8 +104,6 @@ function [ekfResult, groundTruth, trajErr] = readEkfLog(filename, changeGtFrame)
     ekfResult.timeSinceLastCorrection = ekfResult.timeSinceLastCorrection * 10^-6;
 
     %% Populate groundTruth
-    nGT = 7;
-    gt_marker2mocap = data(:,col:col+nGT-1)'; 
     
     if changeGtFrame
         gt_quad2world=convertMocap2World(gt_marker2mocap);
@@ -114,7 +137,7 @@ function [ekfResult, groundTruth, trajErr] = readEkfLog(filename, changeGtFrame)
 
     %%
     idx_validGT = ~isnan(gt_quad2world(1,:));
-    trajErr = evaluateTrackingPerformance(ekfResult.x_(1:7,idx_validGT), gt_quad2world(1:7,idx_validGT), 'none');
+    trajErr = evaluateTrackingPerformance_nano(ekfResult.x_(1:7,idx_validGT), gt_quad2world(1:7,idx_validGT), 'none');
 
 
 
@@ -137,3 +160,18 @@ function M = upperTriToFull(vec, n)
         end
     end
 end
+
+% function M = diagToFull(vec, n)
+% % Convert row-wise upper triangular vector → full symmetric matrix
+% 
+%     M = zeros(n,n);
+%     idx = 1;
+% 
+%     for r = 1:n
+%         for c = r:n
+%             M(r,c) = vec(idx);
+%             M(c,r) = vec(idx);   % enforce symmetry
+%             idx = idx + 1;
+%         end
+%     end
+% end

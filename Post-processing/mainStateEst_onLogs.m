@@ -1,11 +1,11 @@
-function mainStateEst_onLogs(u_hist, z_hist, t_hist, gt_hist)
+function mainStateEst_onLogs(u_hist, zArr_hist, t_hist, gt_hist)
 %MAIN Summary of this function goes here
 %   Detailed explanation goes here
     
     %% init parameters
     g = [0 0 -9.79]'; %for simulation
     integ = 'rect'; %ekf parameter
-    alpha = 0.99;  %ekf parameter
+    alpha = 0;  %ekf parameter
     ekfSize = 16;  %ekf parameter
     imuHz_ds = 120; %how fast do the IMU measurements come in?
     ekfHz = imuHz_ds;
@@ -36,13 +36,15 @@ function mainStateEst_onLogs(u_hist, z_hist, t_hist, gt_hist)
     ts_lastCorrection = 0;
     timeSinceLastCorrection = 999;
     z_prev = double(zeros(7,1));
-
+    z_arr_new = double(zeros(7,4));
+    z_arr_prev =double(zeros(7,4));
 
     %wait for first imu msg
     %t0_us = uint64(t0*1e6);
     u_prev = u_hist(:,1);
     tsPrev = t_hist(:,1);
     gt_prev = gt_hist(:,1);
+    [z_arr_prev] = zArr_hist(:,:,1);
 
     %Print first output
     ekfResult.time = tsPrev; 
@@ -60,8 +62,9 @@ function mainStateEst_onLogs(u_hist, z_hist, t_hist, gt_hist)
     ekfResult.S = zeros(7,7);%7x7 matrix **log diagonal
     ekfResult.W = zeros(7,7);%7x7 matrix **log diagonal
     ekfResult.Q = zeros(12,12);
+    ekfResult.p3pArr = nan(7,4);
 
-    writeToEkfLog(fID, ekfResult, gt_prev); 
+    writeToEkfLog(fID, ekfResult, gt_prev, z_arr_prev); 
 
      %% MAIN STATE ESTIMATOR
      while count<ekfLoops
@@ -82,16 +85,35 @@ function mainStateEst_onLogs(u_hist, z_hist, t_hist, gt_hist)
             gt_new = gt_hist(:,k);
             gt_prev=gt_hist(:,k-1);
             
+            % %check for new p3p msg
+            % zFlag = 0;
+            % %[z_new] = getRos2Msg_p3p(p3pSub, lastCorrectionTime, z_prev);
+            % z_new = zArr_hist(:,k);
+            % zSum = sum(z_new); %Nans don't work in codegen, they become zeroes
+            % if zSum ~= 0 && ~isnan(zSum)
+            %     zFlag = 1;
+            %     lastCorrectionTime = tsNew;
+            %     meas_count = meas_count + 1;
+            %     z_prev = z_new;
+            % end
+
             %check for new p3p msg
             zFlag = 0;
-            %[z_new] = getRos2Msg_p3p(p3pSub, lastCorrectionTime, z_prev);
-            z_new = z_hist(:,k);
-            zSum = sum(z_new); %Nans don't work in codegen, they become zeroes
-            if zSum ~= 0 && ~isnan(zSum)
-                zFlag = 1;
+            z_new =nan(7,1);
+            z_arr_new = zArr_hist(:,:,k);
+            zOk=~isnan(z_arr_new(1,1)) & sum(z_arr_new(:,1))~=0 & sum(sum(abs(z_arr_new-z_arr_prev), 1),2)~=0;
+            if zOk
+                % %choose z to use
+                % if tsNew-lastCorrectionTime < 0.3
+                %    z_new = chooseMinPoseErr_nano(z_arr_new, x_k_(1:7), 1.2, 2);
+                % end
+                if isnan(z_new(1,1)) %if more time has passed, or the above did not find a good enough solution
+                    z_new = z_arr_new(:,1); %use first solution - this is the "best" soln according to the pose disambiguator
+                end
                 lastCorrectionTime = tsNew;
+                zFlag = 1;
                 meas_count = meas_count + 1;
-                z_prev = z_new;
+                % fprintf("New measurement!");
             end
 
             dt_new =tsNew-tsPrev;
@@ -117,11 +139,13 @@ function mainStateEst_onLogs(u_hist, z_hist, t_hist, gt_hist)
             ekfResult.S = S_k;%7x7 matrix **log diagonal
             ekfResult.W = W_k;%7x7 matrix **log diagonal
             ekfResult.Q = Q_k;
+            ekfResult.p3pArr = z_arr_new;
             
             tsPrev = tsNew;
+            z_arr_prev=z_arr_new;
             %tsPrev_us = tsNew_us;
             %log data
-            writeToEkfLog(fID, ekfResult, gt_new);  
+            writeToEkfLog(fID, ekfResult, gt_new, z_arr_new);  
         end
      end
   
