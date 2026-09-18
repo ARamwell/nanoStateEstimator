@@ -6,43 +6,48 @@ classdef EKF_3dQuad_funcs
       %------------------------------------------------------------%
       
       function [x_new, P_new, x_new_hat, P_new_hat, z_new_hat, z_new, y_new, K_new, S_new_hat, Q_k, W_new] = EKF_loop(g, x_k, P_k, u_new, Q_k, z_new, W_k, t_delta, integ, alpha, meas_count, z_flag)
-        %EKF_LOOP Main EKF loop for 3D quad, calling prediction and correction stages
-        %
-        %   Extended Kalman filter using IMU measurements for state prediction and fusing in pose 'measurements' from some other state sensor (usually visual) 
-        %
-        %
-        %   Inputs:
-        %       g - gravity vector (column) in NED ref frame 
-        %       x_k - most recent (k) a posteriori state estimate, col vector (world NED frame): [position; orientation quaternion; velocity; accel bias; gyro bias]
-        %       P_k - most recent a posteriori state covariance
-        %       u_k - most recent IMU measurement, col vector, [gyro; accel]
-        %       Q - IMU measurement covariance, in IMU space
-        %       z_k - most recent pose measurement from visual system, column vector: [position; orientation quat] 
-        %       W - aiding sensor measurement covariance, sensor space
-        %       t_delta - time since last EKF loop, in seconds 
-        %       integ - type of integration to use: 'rect' or 'trap'
-        %   Outputs:
-        %       x_new - a posteriori state estimate for k+1
-        %       P_new - a posteriori state est covariance for k+1
-        %       processTerm_k - state innovation term
-        %       x_new_hat - a priori state estimate for k+1
-        %       z_new_hat - predicted measurement for k+1
-        %       z_k - output aiding state measurement - quaternion may have changed sign
-        %   ASSUMPTIONS/NOTES:
-        %       The following are hard-coded in. If you change these, you must regenerate the state update, measurement correction, and related jacobian functions
-        %           T_imu2rq - homog transformation matrix from IMU to body frame (rq - "real quad")
-        %           T_rc2rq - homog. transformation matrix from aiding sensor to body frame ("real camera" to rq)
-        %       
-        mahaGate = 25;
-        
-        %*************************************************
-        %----------- STEP 0: INITIALISATIONS -------------
-         K_new = createArray(size(x_k, 1), 7);
-         S_new_hat = nan(7,7);
-         W_new = W_k;
-        
-        %*************************************************
-        %----------- STEP 1: DYNAMICS UPDATE -------------
+            %EKF_LOOP Main EKF loop for 3D quad, calling prediction and correction stages
+            %
+            %   Extended Kalman filter using IMU measurements for state prediction and fusing in pose 'measurements' from some other state sensor (usually visual) 
+            %
+            %
+            %   Inputs:
+            %       g - gravity vector (column) in NED ref frame 
+            %       x_k - most recent (k) a posteriori state estimate, col vector (world NED frame): [position; orientation quaternion; velocity; accel bias; gyro bias]
+            %       P_k - most recent a posteriori state covariance
+            %       u_k - most recent IMU measurement, col vector, [gyro; accel]
+            %       Q - IMU measurement covariance, in IMU space
+            %       z_k - most recent pose measurement from visual system, column vector: [position; orientation quat] 
+            %       W - aiding sensor measurement covariance, sensor space
+            %       t_delta - time since last EKF loop, in seconds 
+            %       integ - type of integration to use: 'rect' or 'trap'
+            %   Outputs:
+            %       x_new - a posteriori state estimate for k+1
+            %       P_new - a posteriori state est covariance for k+1
+            %       processTerm_k - state innovation term
+            %       x_new_hat - a priori state estimate for k+1
+            %       z_new_hat - predicted measurement for k+1
+            %       z_k - output aiding state measurement - quaternion may have changed sign
+            %   ASSUMPTIONS/NOTES:
+            %       The following are hard-coded in. If you change these, you must regenerate the state update, measurement correction, and related jacobian functions
+            %           T_imu2rq - homog transformation matrix from IMU to body frame (rq - "real quad")
+            %           T_rc2rq - homog. transformation matrix from aiding sensor to body frame ("real camera" to rq)
+            %       
+            mahaGate = 25;
+            
+            %*************************************************
+            %----------- STEP 0: INITIALISATIONS -------------
+            K_new = createArray(size(x_k, 1), 7);
+            S_new_hat = nan(7,7);
+            W_new = W_k;
+            x_new = x_k;
+            P_new = P_k;
+            z_new_hat = nan(7,1);
+            y_new = nan(7,1);
+            z_new = nan(7,1);
+
+            %*************************************************
+            %----------- STEP 1: DYNAMICS UPDATE -------------
 
             %System cannot handle omegas of perfectly 0:
             if norm(u_new(1:3)) < 0.001
@@ -242,7 +247,7 @@ classdef EKF_3dQuad_funcs
             if xhowBig == 10
                 if integ == "trap"
                     x_new_hat(1:end,1) = ekf_processModel_10el_trap(numerics);
-                    F_new_hat(1:end, 1:end) = ekf_pF_10el_trap(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_F_10el_trap(numerics);
                     L_new_hat(1:end, 1:end) =ekf_L_10el_trap(numerics);
                 elseif integ == "mtrp"
                     x_new_hat(1:end,1) = ekf_processModel_10el_mtrp(numerics);

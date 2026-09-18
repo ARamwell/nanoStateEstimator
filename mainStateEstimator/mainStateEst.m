@@ -165,7 +165,8 @@ function mainStateEst()
 
             dt_av_s = double(dt_av);
             [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, double(u_new), Q, z_new, W_k, dt_av_s, integ, alpha, meas_count, zFlag);
-    
+            
+
             fprintf("\n");
             fprintf("New state: %f", double(x_k_(1)));%, double(x_k_(2,1)), double(x_k_(3,1)), double(x_k_(4,1)), double(x_k_(5,1)), double(x_k_(6,1)), double(x_k_(7,1)));
             fprintf("%f ", double(x_k_(2)));
