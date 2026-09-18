@@ -1,7 +1,7 @@
 
 folders = selector_multiFolder;
 convGTFrame =false;
-doSave =false;
+doSave =true;
 
 %%
 for f=1:length(folders)
@@ -14,7 +14,7 @@ for f=1:length(folders)
     ekfResult = replicateSimLogs(fileName, convGTFrame);
 
     if doSave
-        saveName = strcat(folder_f, "\ekfResult_16el_rect_a0.mat");
+        saveName = strcat(folder_f, "\ekfResult_16el_rect_a0_inflQz_trueDt.mat");
         save(saveName, '-struct', 'ekfResult');
     end
 end

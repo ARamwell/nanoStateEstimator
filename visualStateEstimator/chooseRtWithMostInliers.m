@@ -5,7 +5,6 @@ function [bestRt, mostInliers, bestIdx] = chooseRtWithMostInliers(K, Rt_arr, x_p
             bestIdx =nan(1,1);
 
             %first try with low threshold - 0.5
-            inlierThreshold = 20;
             % for n=1:3
             %     numInliers = countInliers(K, Rt_arr, inlierThreshold, x_pnts_i, X_pnts_W);
             % 

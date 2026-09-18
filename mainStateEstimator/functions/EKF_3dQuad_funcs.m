@@ -242,7 +242,7 @@ classdef EKF_3dQuad_funcs
             if xhowBig == 10
                 if integ == "trap"
                     x_new_hat(1:end,1) = ekf_processModel_10el_trap(numerics);
-                    F_new_hat(1:end, 1:end) = ekf_F_10el_trap(numerics);
+                    F_new_hat(1:end, 1:end) = ekf_pF_10el_trap(numerics);
                     L_new_hat(1:end, 1:end) =ekf_L_10el_trap(numerics);
                 elseif integ == "mtrp"
                     x_new_hat(1:end,1) = ekf_processModel_10el_mtrp(numerics);

@@ -7,7 +7,7 @@ function mainStateEst_onLogs(u_hist, zArr_hist, t_hist, gt_hist)
     integ = 'rect'; %ekf parameter
     alpha = 0;  %ekf parameter
     ekfSize = 16;  %ekf parameter
-    imuHz_ds = 120; %how fast do the IMU measurements come in?
+    imuHz_ds = 220; %how fast do the IMU measurements come in?
     ekfHz = imuHz_ds;
     ekfLoops = size(u_hist, 2)-1;%2000;
 
@@ -103,10 +103,10 @@ function mainStateEst_onLogs(u_hist, zArr_hist, t_hist, gt_hist)
             z_arr_new = zArr_hist(:,:,k);
             zOk=~isnan(z_arr_new(1,1)) & sum(z_arr_new(:,1))~=0 & sum(sum(abs(z_arr_new-z_arr_prev), 1),2)~=0;
             if zOk
-                % %choose z to use
-                % if tsNew-lastCorrectionTime < 0.3
-                %    z_new = chooseMinPoseErr_nano(z_arr_new, x_k_(1:7), 1.2, 2);
-                % end
+                %choose z to use
+                if tsNew-lastCorrectionTime < 0.3
+                   z_new = chooseMinPoseErr_nano(z_arr_new, x_k_(1:7), 1.2, 2);
+                end
                 if isnan(z_new(1,1)) %if more time has passed, or the above did not find a good enough solution
                     z_new = z_arr_new(:,1); %use first solution - this is the "best" soln according to the pose disambiguator
                 end
@@ -121,7 +121,8 @@ function mainStateEst_onLogs(u_hist, zArr_hist, t_hist, gt_hist)
             timeSinceLastCorrection = tsNew-lastCorrectionTime; %how much time has passed since we last got a visual pose estimate?
                                
             dt_av_s = double(dt_av);
-            [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, double(u_new), Q, z_new, W_k, dt_av_s, integ, alpha, meas_count, zFlag);
+            dt_new_s =double(dt_new);
+            [x_k_, P_k_, xHat_k, PHat_k, zHat_k, z_out_k, y_k, K_k, S_k, Q_k, W_k] = EKF_3dQuad_funcs.EKF_loop(g, x_k_, P_k_, double(u_new), Q, z_new, W_k, dt_new_s, integ, alpha, meas_count, zFlag);
     
             count=count+1;  
             ekfResult.time = tsNew; 

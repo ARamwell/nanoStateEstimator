@@ -5,3 +5,4 @@ msgdef/
 *.elf
 *.tgz
 *.sh
+ekfLog.txt

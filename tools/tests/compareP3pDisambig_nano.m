@@ -13,22 +13,35 @@
 
     featMap = load("C:\Users\Alyssa\Documents\nanoStateEstimator\visualStateEstimator\featureMap.mat");
     srcFile = fullfile("C:\Users\Alyssa\OneDrive - University of Cape Town\Thesis\TestsAndResults\Diss1\physical\p3pDebug\stationary4_newCamCalib");
-    % T_rq2rc =  [   0   -1.0000         0    0.035; ...
-    %                1         0         0    0.03;...
-    %                0         0    1.0000    0.17; ...
-    %                0         0         0    1.0000];
+    %srcFile = fullfile("C:\Users\Alyssa\OneDrive - University of Cape Town\Thesis\TestsAndResults\Diss1\physical\p3pDebug\moving6_newCamCalib_rebuld_forreport");
+    %srcFile =fullfile('C:\Users\Alyssa\OneDrive - University of Cape Town\Thesis\TestsAndResults\Diss1\physical\p3pDebug\moving4_adjusted_stillOffset');
+    %srcFile=("C:\Users\Alyssa\OneDrive - University of Cape Town\Thesis\TestsAndResults\Diss1\p3p_test_sim\sim_2026-04-13_10-16-57_spiral_scaledNoise_px4\sim_spiral");
+     % 
+     % T_rq2rc =  [   0   -1.0000         0    0.0; ...
+     %                1         0         0    0.0;...
+     %                0         0    1.0000    0.0; ...
+     %                 0         0         0    1.0000]; %sim
+    % 
     T_rq2rc = [ 0.0385   -0.9988    0.0299    0.0395; ...
                 0.9991    0.0390    0.0135   -0.0112; ...
                -0.0147    0.0294    0.9995    0.1224; ...
-                0         0         0         1.0000];
+                0         0         0         1.0000]; %phys
+    % 
+    %K = [  576.87         0  338.68;   0  576.86  180.90;   0         0    1.0000]; %640p
+    K =  [583.6734         0  309.7243;
+         0  582.8750  183.5180;
+         0         0    1.0000];
 
 
-   
-    K = [  576.87         0  338.68;   0  576.86  180.90;   0         0    1.0000]; %640p
     refTime = datetime(2000, 01, 01); %if importing simulation data
+
+    %% Settings
+    inlierThreshold_strict = 20; %20
 
     %% import images
     [imageStream, imageTime] = imgFuncs.importImageSeq(srcFile, 0, refTime, ".png"); %returns grayscale
+
+    %[imageStream, imageTime] = imgFuncs.importImageSeq(srcFile, 0, refTime, ".jpg"); %returns grayscale
     totalFrames = size(imageTime,2);
     %t_p3p = nan(1, totalFrames);
     %for i = totalFrames
@@ -51,13 +64,18 @@
     pose_err = nan(3, totalFrames);
     idxSel_best = nan(1, totalFrames);
 
-        pose_statusQuo = nan(7, totalFrames);
+    pose_statusQuo = nan(7, totalFrames);
     %%err_minReproj = nan(1, totalFrames);
     idxSel_statusQuo = nan(1, totalFrames);
 
     %% import groundtruth
   %  load(mocapFile);
     pose_true = convertMocap2World(mocap_pq_Hist);
+    % fps = 20;
+    % simHz =8000;
+    % idxImgTime=1:400:(size(simout.simout.quadState.time));
+    % pose_true = simout.simout.quadState.signals.values(idxImgTime',1:7)';
+
 
     %% Run P3P - nano version
     for i=1:totalFrames
@@ -65,9 +83,7 @@
         pq_arr = nan(7,4);
         pq_arr_quad = nan(7,4);
         img = imageStream(:,:,i);
-        x_det = nan(1,1);
-
-        
+        x_det = nan(1,1);    
 
         [x_det, X_W_det, id_det] = featureDetectMatch_nano(img, featMap.featureMap); %detect Aruco tags
         x_train = x_det(:,:,1); 
@@ -90,10 +106,10 @@
 
                 %***** MOST INLIERS + LEAST REPROJ WHEN NEEDED
                 if ~isnan(x_test(1,1))
-                    [Rt_mostInliers, numIn_mostInliers(:,i), idxSel_mostInliers(:,i)] = chooseRtWithMostInliers(K, Rt_arr, x_test, XW_test, 10);  
-                    if numIn_mostInliers(:,i)<1 % %relax inlier threshold if it fails
-                         [Rt_mostInliers, numIn_mostInliers(:,i), idxSel_mostInliers(:,i)] = chooseRtWithMostInliers(K, Rt_arr, x_test, XW_test, 15);  
-                    end
+                    [Rt_mostInliers, numIn_mostInliers(:,i), idxSel_mostInliers(:,i)] = chooseRtWithMostInliers(K, Rt_arr, x_test, XW_test, inlierThreshold_strict);  
+                    % if numIn_mostInliers(:,i)<1 % %relax inlier threshold if it fails
+                    %      [Rt_mostInliers, numIn_mostInliers(:,i), idxSel_mostInliers(:,i)] = chooseRtWithMostInliers(K, Rt_arr, x_test, XW_test, inlierThreshold_relaxed);  
+                    % end
                 else
                     [Rt_mostInliers, numIn_mostInliers(:,i), idxSel_mostInliers(:,i)]=chooseMinReprojErrW2C(K, Rt_arr, x_train(:,4), XW_train(:,4));
                 end

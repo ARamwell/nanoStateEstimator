@@ -39,7 +39,7 @@ for f=1:length(folders)
     ekfResult_out = replicateSimLogs(ekfLogFile_out, false);
 
     %% Save new result
-    saveName = strcat(folder_f, "\ekfResult_16el_rect_a0_reprojOnly.mat");
+    saveName = strcat(folder_f, "\ekfResult_16el_rect_a0_simTune_trueDt.mat");
     save(saveName, '-struct', 'ekfResult_out');
 
 end
